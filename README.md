@@ -95,3 +95,48 @@ const treinoAjustado = await aiService.applyAdjustment({
   instrucao_do_personal: 'Troque o Supino Reto por Supino Reto com Halteres e coloque 4 séries de 10 a 12'
 });
 ```
+
+---
+
+## 🔐 3. Autenticação do Sistema (Prompt 5 — Supabase Auth)
+
+O sistema conta com um módulo robusto de autenticação e gestão de perfil de Personal Trainers via **Supabase Auth** e persistência síncrona na tabela pública `personais`.
+
+- **Arquivo do Serviço**: [`src/services/authService.ts`](./src/services/authService.ts)
+- **Telas**: Login & Cadastro responsivos com alternador de abas, medidor de força de senha e visualização de credenciais.
+
+### 🛡️ Funcionalidades Implementadas:
+1. **Cadastro Completo**: Validação em tempo real de Nome, CREF (Registro Profissional obrigatório), E-mail e Senha (mínimo 6 dígitos com confirmação de senha).
+2. **Sincronização com a tabela `personais`**: 
+   - No Supabase: Trigger `handle_new_personal_user()` captura os metadados do `auth.users` e insere/atualiza no `public.personais`.
+   - Na aplicação: Chamada `upsert` defensiva garantindo persistência imediata mesmo em ambientes híbridos.
+3. **Gestão de Sessão Persistente**: Reconhecimento automático de sessão ativa ao abrir a plataforma, redirecionando imediatamente para o Dashboard.
+4. **Modo Demonstração Integrado**: Botão de acesso em 1 clique com conta de demonstração do Personal Balbino para testes ágeis.
+5. **Segurança (RLS)**: Isolamento estrito de visualização e edição de registros onde `auth.uid() = personal_id`.
+
+---
+
+## 🚀 4. DevOps, Segurança & Pipeline CI/CD para Produção
+
+### ⚙️ Arquitetura de Build & Performance
+- **Bundler**: Vite 8 + ESBuild com minificação e divisão de chunks (`manualChunks` para isolar `@supabase/supabase-js`).
+- **Validação de Tipos**: `npm run type-check` (`tsc --noEmit`) executado antes de cada build.
+- **Cache de Assets**: Cabeçalho `Cache-Control: public, max-age=31536000, immutable` configurado no [`vercel.json`](./vercel.json) e [`netlify.toml`](./netlify.toml).
+
+### 🔒 Segurança & Hardening
+1. **Auditoria RLS**: Políticas estritas em todas as 7 tabelas do PostgreSQL (`auth.uid() = personal_id`).
+2. **Cabeçalhos HTTP de Segurança**:
+   - `X-Frame-Options: DENY` (Proteção contra Clickjacking)
+   - `X-Content-Type-Options: nosniff` (Prevenção de MIME-sniffing)
+   - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` (HSTS)
+   - `Referrer-Policy: strict-origin-when-cross-origin`
+   - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+3. **Proteção de API & Rate Limiting**: Limitador de requisições integrado em [`src/services/healthCheck.ts`](./src/services/healthCheck.ts).
+
+### 🔄 Pipeline de CI/CD (GitHub Actions)
+O workflow [`.github/workflows/ci-cd.yml`](./.github/workflows/ci-cd.yml) é disparado automaticamente a cada push nas branches `main` (produção) e `develop` (staging):
+1. Instalação determinística de dependências.
+2. Checagem estrita de tipos TypeScript.
+3. Geração do bundle de produção com validação de variáveis de ambiente.
+4. Armazenamento seguro de artefatos de build.
+

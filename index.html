@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Balbino Pro — Plataforma Inteligente para Personal Trainer & Nutrição</title>
+  <meta name="theme-color" content="#090c10">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Balbino Pro — Plataforma Inteligente para Personal Trainer &amp; Nutrição</title>
   <meta name="description" content="Plataforma SaaS para Personal Trainers com gestão de alunos, avaliações físicas, biblioteca de exercícios, gerador de treinos e planos alimentares com IA Co-Piloto.">
   
   <!-- Google Fonts -->
@@ -33,7 +35,7 @@
               <span class="auth-brand-badge">SISTEMA PERSONAL TRAINER</span>
             </div>
           </div>
-          <p class="auth-subtitle">Plataforma de Alta Performance, Gestão de Alunos &amp; Co-Piloto IA</p>
+          <p class="auth-subtitle">Prescrição Esportiva, Gestão de Alunos &amp; Co-Piloto IA</p>
         </div>
 
         <!-- Auth Navigation Tabs -->
@@ -42,7 +44,7 @@
             <i data-lucide="log-in"></i> Entrar
           </button>
           <button class="auth-tab-btn" id="tab-btn-register" type="button">
-            <i data-lucide="user-plus"></i> Cadastre-se
+            <i data-lucide="user-plus"></i> Cadastrar
           </button>
         </div>
 
@@ -55,21 +57,21 @@
         <!-- TELA DE LOGIN -->
         <form class="auth-form" id="form-login">
           <div class="form-group mb-3">
-            <label class="form-label" for="login-email">E-mail Profissional</label>
+            <label class="form-label" for="login-email">E-mail</label>
             <div class="input-icon-wrapper">
               <i data-lucide="mail" class="input-icon"></i>
-              <input type="email" class="form-control with-icon" id="login-email" required placeholder="seu.email@exemplo.com" autocomplete="email">
+              <input type="email" class="form-control with-icon" id="login-email" required placeholder="seu@email.com" autocomplete="email">
             </div>
           </div>
 
           <div class="form-group mb-3">
             <div class="form-label-row">
-              <label class="form-label" for="login-password">Senha de Acesso</label>
-              <span class="text-xs text-muted">Mínimo 6 caracteres</span>
+              <label class="form-label" for="login-password">Senha</label>
+              <button type="button" class="btn-link-subtle" id="link-forgot-password">Esqueceu a senha?</button>
             </div>
             <div class="input-icon-wrapper">
               <i data-lucide="lock" class="input-icon"></i>
-              <input type="password" class="form-control with-icon with-action" id="login-password" required placeholder="Sua senha" autocomplete="current-password">
+              <input type="password" class="form-control with-icon with-action" id="login-password" required placeholder="Digite sua senha" autocomplete="current-password">
               <button type="button" class="btn-toggle-password" id="btn-toggle-login-pwd" title="Mostrar/Ocultar senha">
                 <i data-lucide="eye"></i>
               </button>
@@ -78,20 +80,20 @@
 
           <button type="submit" class="btn-primary btn-block btn-lg" id="btn-login-submit">
             <i data-lucide="arrow-right"></i>
-            <span>Entrar no Painel</span>
+            <span>Acessar Plataforma</span>
           </button>
 
           <div class="auth-footer-links">
-            <span>Não tem conta?</span>
-            <button type="button" class="btn-link-accent" id="link-to-register">Cadastre-se agora</button>
+            <span>Novo por aqui?</span>
+            <button type="button" class="btn-link-accent" id="link-to-register">Criar conta</button>
           </div>
 
           <div class="auth-divider">
-            <span>OU ACESSO DE TESTE</span>
+            <span>OU ACESSE SEM CONTA</span>
           </div>
 
           <button type="button" class="btn-secondary btn-block btn-demo" id="btn-demo-login">
-            <i data-lucide="zap"></i> Entrar com Conta Demo (Personal Balbino)
+            <i data-lucide="zap"></i> Acessar Modo Demonstração
           </button>
         </form>
 
@@ -101,7 +103,7 @@
             <label class="form-label" for="register-name">Nome Completo *</label>
             <div class="input-icon-wrapper">
               <i data-lucide="user" class="input-icon"></i>
-              <input type="text" class="form-control with-icon" id="register-name" required placeholder="Ex: Prof. Carlos Balbino" autocomplete="name">
+              <input type="text" class="form-control with-icon" id="register-name" required placeholder="Ex: Carlos Balbino" autocomplete="name">
             </div>
           </div>
 
@@ -120,18 +122,18 @@
             <label class="form-label" for="register-email">E-mail *</label>
             <div class="input-icon-wrapper">
               <i data-lucide="mail" class="input-icon"></i>
-              <input type="email" class="form-control with-icon" id="register-email" required placeholder="seu.email@exemplo.com" autocomplete="email">
+              <input type="email" class="form-control with-icon" id="register-email" required placeholder="seu@email.com" autocomplete="email">
             </div>
           </div>
 
           <div class="form-group mb-3">
             <div class="form-label-row">
               <label class="form-label" for="register-password">Senha *</label>
-              <span class="text-xs text-muted" id="pwd-strength-label">Mínimo 6 caracteres</span>
+              <span class="text-xs text-muted" id="pwd-strength-label">Mínimo 6 dígitos</span>
             </div>
             <div class="input-icon-wrapper">
               <i data-lucide="lock" class="input-icon"></i>
-              <input type="password" class="form-control with-icon with-action" id="register-password" required minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+              <input type="password" class="form-control with-icon with-action" id="register-password" required minlength="6" placeholder="Mínimo 6 dígitos" autocomplete="new-password">
               <button type="button" class="btn-toggle-password" id="btn-toggle-reg-pwd" title="Mostrar/Ocultar senha">
                 <i data-lucide="eye"></i>
               </button>
@@ -145,7 +147,7 @@
             <label class="form-label" for="register-confirm-password">Confirmar Senha *</label>
             <div class="input-icon-wrapper">
               <i data-lucide="shield-check" class="input-icon"></i>
-              <input type="password" class="form-control with-icon with-action" id="register-confirm-password" required minlength="6" placeholder="Repita sua senha" autocomplete="new-password">
+              <input type="password" class="form-control with-icon with-action" id="register-confirm-password" required minlength="6" placeholder="Repita a senha criada" autocomplete="new-password">
               <button type="button" class="btn-toggle-password" id="btn-toggle-reg-confirm-pwd" title="Mostrar/Ocultar senha">
                 <i data-lucide="eye"></i>
               </button>
@@ -155,12 +157,109 @@
 
           <button type="submit" class="btn-primary btn-block btn-lg" id="btn-register-submit">
             <i data-lucide="check-circle"></i>
-            <span>Criar Conta &amp; Acessar</span>
+            <span>Concluir Cadastro</span>
           </button>
 
           <div class="auth-footer-links">
-            <span>Já tem conta?</span>
-            <button type="button" class="btn-link-accent" id="link-to-login">Faça login</button>
+            <span>Já tem cadastro?</span>
+            <button type="button" class="btn-link-accent" id="link-to-login">Fazer login</button>
+          </div>
+        </form>
+
+        <!-- TELA DE RECUPERAÇÃO DE SENHA (ESQUECI MINHA SENHA) -->
+        <form class="auth-form hidden" id="form-forgot-password">
+          <div class="auth-view-header">
+            <div class="auth-view-icon-badge">
+              <i data-lucide="key-round"></i>
+            </div>
+            <h3 class="auth-view-title">Recuperar Acesso</h3>
+            <p class="auth-view-desc">Informe seu e-mail cadastrado para receber as instruções de recuperação de forma segura.</p>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label" for="forgot-email">E-mail Cadastrado</label>
+            <div class="input-icon-wrapper">
+              <i data-lucide="mail" class="input-icon"></i>
+              <input type="email" class="form-control with-icon" id="forgot-email" required placeholder="seu@email.com" autocomplete="email">
+            </div>
+          </div>
+
+          <div class="auth-security-info mb-3">
+            <i data-lucide="shield-check"></i>
+            <span>Link de recuperação criptografado com validade temporária e proteção anti-enumeração.</span>
+          </div>
+
+          <button type="submit" class="btn-primary btn-block btn-lg" id="btn-forgot-submit">
+            <i data-lucide="send"></i>
+            <span>Enviar Link de Recuperação</span>
+          </button>
+
+          <!-- Atalho para simulação local/teste imediato -->
+          <div class="auth-sim-box hidden" id="forgot-sim-box">
+            <div class="auth-divider">
+              <span>DEFINIR NOVA SENHA</span>
+            </div>
+            <button type="button" class="btn-secondary btn-block btn-demo" id="btn-forgot-simulate-reset">
+              <i data-lucide="refresh-cw"></i> Redefinir Senha Agora
+            </button>
+          </div>
+
+          <div class="auth-footer-links">
+            <span>Lembrou da senha?</span>
+            <button type="button" class="btn-link-accent" id="link-forgot-to-login">Voltar ao login</button>
+          </div>
+        </form>
+
+        <!-- TELA DE DEFINIÇÃO DE NOVA SENHA -->
+        <form class="auth-form hidden" id="form-reset-password">
+          <div class="auth-view-header">
+            <div class="auth-view-icon-badge success">
+              <i data-lucide="shield-check"></i>
+            </div>
+            <h3 class="auth-view-title">Criar Nova Senha</h3>
+            <p class="auth-view-desc">Defina uma nova senha de alta segurança para a sua conta.</p>
+            <div class="email-target-pill" id="reset-target-email-pill">
+              <i data-lucide="user-check"></i>
+              <span id="reset-target-email-text">balbino@personaltrainer.com</span>
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <div class="form-label-row">
+              <label class="form-label" for="reset-password">Nova Senha *</label>
+              <span class="text-xs text-muted" id="reset-pwd-strength-label">Mínimo 6 dígitos</span>
+            </div>
+            <div class="input-icon-wrapper">
+              <i data-lucide="lock" class="input-icon"></i>
+              <input type="password" class="form-control with-icon with-action" id="reset-password" required minlength="6" placeholder="Digite sua nova senha" autocomplete="new-password">
+              <button type="button" class="btn-toggle-password" id="btn-toggle-reset-pwd" title="Mostrar/Ocultar senha">
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
+            <div class="password-strength-bar">
+              <div class="strength-fill" id="reset-pwd-strength-fill"></div>
+            </div>
+          </div>
+
+          <div class="form-group mb-4">
+            <label class="form-label" for="reset-confirm-password">Confirmar Nova Senha *</label>
+            <div class="input-icon-wrapper">
+              <i data-lucide="shield-check" class="input-icon"></i>
+              <input type="password" class="form-control with-icon with-action" id="reset-confirm-password" required minlength="6" placeholder="Repita a nova senha" autocomplete="new-password">
+              <button type="button" class="btn-toggle-password" id="btn-toggle-reset-confirm-pwd" title="Mostrar/Ocultar senha">
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
+            <span class="input-helper-error hidden" id="reset-pwd-match-error">As senhas não coincidem.</span>
+          </div>
+
+          <button type="submit" class="btn-primary btn-block btn-lg" id="btn-reset-submit">
+            <i data-lucide="check-circle"></i>
+            <span>Salvar Nova Senha</span>
+          </button>
+
+          <div class="auth-footer-links">
+            <button type="button" class="btn-link-accent" id="link-reset-to-login">Cancelar e voltar ao login</button>
           </div>
         </form>
 
@@ -187,8 +286,8 @@
             <i data-lucide="dumbbell"></i>
           </div>
           <div class="logo-text">
-            <span class="brand-title">BALBINO<span class="brand-accent">PRO</span></span>
-            <span class="brand-sub">Personal & Nutri AI</span>
+            <span class="brand-title">SISTEMA <span class="brand-accent">PERSONAL</span></span>
+            <span class="brand-sub">Personal Trainer &amp; Nutri AI</span>
           </div>
         </div>
       </div>
@@ -202,7 +301,7 @@
         <button class="nav-item" data-tab="alunos">
           <i data-lucide="users"></i>
           <span>Gestão de Alunos</span>
-          <span class="badge" id="student-count-badge">4</span>
+          <span class="badge" id="student-count-badge">1</span>
         </button>
         <button class="nav-item" data-tab="avaliacoes">
           <i data-lucide="activity"></i>
@@ -272,6 +371,14 @@
         </div>
 
         <div class="header-actions">
+          <div class="top-header-user-pill" id="top-header-user-badge">
+            <div class="header-user-avatar" id="header-user-avatar">EB</div>
+            <div class="header-user-meta">
+              <span class="header-user-name" id="header-user-name">Eduardo Cunha Balbino</span>
+              <span class="header-user-role" id="header-user-cref">CREF 123456-G/SP</span>
+            </div>
+          </div>
+
           <div class="ai-status-indicator" id="ai-status-pill">
             <span class="status-dot pulse"></span>
             <span class="status-label">Agente IA Ativo (Gemini 1.5)</span>
@@ -294,8 +401,8 @@
             </div>
             <div class="metric-body">
               <span class="metric-label">Alunos Ativos</span>
-              <span class="metric-value" id="dash-total-students">4</span>
-              <span class="metric-trend positive"><i data-lucide="trending-up"></i> +2 este mês</span>
+              <span class="metric-value" id="dash-total-students">1</span>
+              <span class="metric-trend positive"><i data-lucide="trending-up"></i> Em acompanhamento</span>
             </div>
           </div>
 
@@ -305,8 +412,8 @@
             </div>
             <div class="metric-body">
               <span class="metric-label">Fichas de Treino Ativas</span>
-              <span class="metric-value" id="dash-total-workouts">8</span>
-              <span class="metric-trend positive"><i data-lucide="check-circle-2"></i> 100% atualizadas</span>
+              <span class="metric-value" id="dash-total-workouts">1</span>
+              <span class="metric-trend positive"><i data-lucide="check-circle-2"></i> 100% atualizada</span>
             </div>
           </div>
 
@@ -316,8 +423,8 @@
             </div>
             <div class="metric-body">
               <span class="metric-label">Planos Alimentares</span>
-              <span class="metric-value" id="dash-total-diets">6</span>
-              <span class="metric-trend neutral"><i data-lucide="clock"></i> 2 em rascunho</span>
+              <span class="metric-value" id="dash-total-diets">1</span>
+              <span class="metric-trend positive"><i data-lucide="check"></i> Ativo</span>
             </div>
           </div>
 
@@ -326,9 +433,9 @@
               <i data-lucide="bot"></i>
             </div>
             <div class="metric-body">
-              <span class="metric-label">Prescrições Geradas com IA</span>
-              <span class="metric-value" id="dash-total-ai">24</span>
-              <span class="metric-trend positive"><i data-lucide="zap"></i> Economia ~18h/mês</span>
+              <span class="metric-label">Prescrições com IA</span>
+              <span class="metric-value" id="dash-total-ai">1</span>
+              <span class="metric-trend positive"><i data-lucide="zap"></i> Co-Piloto Ativo</span>
             </div>
           </div>
         </div>

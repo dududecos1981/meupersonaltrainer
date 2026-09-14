@@ -14,7 +14,7 @@ declare const lucide: any;
 // BASE DE DADOS INICIAL / ESTADO GLOBAL
 // ==============================================================================
 
-const INITIAL_STUDENTS: (Paciente & { idade: number; peso: number; altura: number; objetivo: string; lesoes: string; rotina: string; nivel: string })[] = [
+const INITIAL_STUDENTS: (Paciente & { idade: number; peso: number; altura: number; objetivo: string; lesoes: string; rotina: string; nivel: string; ficha?: string; calorias?: string })[] = [
   {
     id: '22222222-2222-2222-2222-222222222222',
     nome: 'Carlos Eduardo Silva',
@@ -27,53 +27,10 @@ const INITIAL_STUDENTS: (Paciente & { idade: number; peso: number; altura: numbe
     altura: 178,
     nivel: 'INTERMEDIARIO',
     objetivo: 'HIPERTROFIA',
+    ficha: 'Ficha ABC Hipertrofia (4x)',
+    calorias: '2.650 kcal',
     lesoes: 'Leve desconforto no ombro direito em abdução máxima',
     rotina: 'Treina às 06:30 em jejum com pré-treino leve; trabalha sentado até 18h.'
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222223',
-    nome: 'Mariana Costa Ferreira',
-    email: 'mariana.costa@email.com',
-    telefone: '(11) 97123-4567',
-    data_nascimento: '1995-09-20',
-    sexo: 'F',
-    idade: 31,
-    peso: 62.0,
-    altura: 165,
-    nivel: 'AVANCADO',
-    objetivo: 'EMAGRECIMENTO',
-    lesoes: 'Condromalácia patelar grau 1 no joelho esquerdo',
-    rotina: 'Treina às 19:00 pós-trabalho; prefere 5 refeições fracionadas.'
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222224',
-    nome: 'Rodrigo Albuquerque',
-    email: 'rodrigo.alb@email.com',
-    telefone: '(11) 98234-9988',
-    data_nascimento: '1989-11-03',
-    sexo: 'M',
-    idade: 37,
-    peso: 91.0,
-    altura: 182,
-    nivel: 'INICIANTE',
-    objetivo: 'CONDICIONAMENTO',
-    lesoes: 'Hérnia de disco L4-L5 assintomática',
-    rotina: 'Rotina agitada de viagens; 3 a 4 dias por semana de treino.'
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222225',
-    nome: 'Camila Rocha Nogueira',
-    email: 'camila.rocha@email.com',
-    telefone: '(11) 99345-1122',
-    data_nascimento: '2001-02-15',
-    sexo: 'F',
-    idade: 25,
-    peso: 55.5,
-    altura: 162,
-    nivel: 'INTERMEDIARIO',
-    objetivo: 'HIPERTROFIA',
-    lesoes: 'Nenhuma queixa articular',
-    rotina: 'Estudante e atleta amadora de corrida aos fins de semana.'
   }
 ];
 
@@ -256,15 +213,28 @@ function setupAuth() {
   const authContainer = document.getElementById('auth-container');
   const appLayout = document.getElementById('app-main-layout');
 
+  const authTabs = document.querySelector('.auth-tabs') as HTMLElement;
   const tabBtnLogin = document.getElementById('tab-btn-login');
   const tabBtnRegister = document.getElementById('tab-btn-register');
+
   const formLogin = document.getElementById('form-login') as HTMLFormElement;
   const formRegister = document.getElementById('form-register') as HTMLFormElement;
+  const formForgotPassword = document.getElementById('form-forgot-password') as HTMLFormElement;
+  const formResetPassword = document.getElementById('form-reset-password') as HTMLFormElement;
+
   const linkToRegister = document.getElementById('link-to-register');
   const linkToLogin = document.getElementById('link-to-login');
+  const linkForgotPassword = document.getElementById('link-forgot-password');
+  const linkForgotToLogin = document.getElementById('link-forgot-to-login');
+  const linkResetToLogin = document.getElementById('link-reset-to-login');
 
   const alertBox = document.getElementById('auth-alert-box');
   const alertMsg = document.getElementById('auth-alert-msg');
+  const forgotSimBox = document.getElementById('forgot-sim-box');
+  const btnForgotSimulateReset = document.getElementById('btn-forgot-simulate-reset');
+
+  const resetTargetEmailText = document.getElementById('reset-target-email-text');
+  let currentRecoveryEmail = 'balbino@personaltrainer.com';
 
   // Helper para alertas visuais amigáveis
   function showAuthAlert(message: string, type: 'error' | 'success' = 'error') {
@@ -277,29 +247,55 @@ function setupAuth() {
   function clearAuthAlert() {
     alertBox?.classList.add('hidden');
     document.getElementById('pwd-match-error')?.classList.add('hidden');
+    document.getElementById('reset-pwd-match-error')?.classList.add('hidden');
   }
 
-  // Alternador de abas: Login / Cadastro
-  function switchAuthTab(tab: 'login' | 'register') {
+  // Alternador de abas e telas da central de autenticação
+  function switchAuthView(view: 'login' | 'register' | 'forgot' | 'reset', targetEmail?: string) {
     clearAuthAlert();
-    if (tab === 'login') {
-      tabBtnLogin?.classList.add('active');
-      tabBtnRegister?.classList.remove('active');
-      formLogin?.classList.remove('hidden');
-      formRegister?.classList.add('hidden');
-    } else {
-      tabBtnLogin?.classList.remove('active');
-      tabBtnRegister?.classList.add('active');
-      formLogin?.classList.add('hidden');
-      formRegister?.classList.remove('hidden');
+
+    // Esconde todos os formulários primeiro
+    formLogin?.classList.add('hidden');
+    formRegister?.classList.add('hidden');
+    formForgotPassword?.classList.add('hidden');
+    formResetPassword?.classList.add('hidden');
+
+    if (view === 'login' || view === 'register') {
+      authTabs?.classList.remove('hidden');
+      if (view === 'login') {
+        tabBtnLogin?.classList.add('active');
+        tabBtnRegister?.classList.remove('active');
+        formLogin?.classList.remove('hidden');
+      } else {
+        tabBtnLogin?.classList.remove('active');
+        tabBtnRegister?.classList.add('active');
+        formRegister?.classList.remove('hidden');
+      }
+    } else if (view === 'forgot') {
+      authTabs?.classList.add('hidden');
+      formForgotPassword?.classList.remove('hidden');
+      forgotSimBox?.classList.add('hidden');
+    } else if (view === 'reset') {
+      authTabs?.classList.add('hidden');
+      formResetPassword?.classList.remove('hidden');
+      if (targetEmail) {
+        currentRecoveryEmail = targetEmail;
+      }
+      if (resetTargetEmailText) {
+        resetTargetEmailText.textContent = currentRecoveryEmail;
+      }
     }
+
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
-  tabBtnLogin?.addEventListener('click', () => switchAuthTab('login'));
-  tabBtnRegister?.addEventListener('click', () => switchAuthTab('register'));
-  linkToRegister?.addEventListener('click', () => switchAuthTab('register'));
-  linkToLogin?.addEventListener('click', () => switchAuthTab('login'));
+  tabBtnLogin?.addEventListener('click', () => switchAuthView('login'));
+  tabBtnRegister?.addEventListener('click', () => switchAuthView('register'));
+  linkToRegister?.addEventListener('click', () => switchAuthView('register'));
+  linkToLogin?.addEventListener('click', () => switchAuthView('login'));
+  linkForgotPassword?.addEventListener('click', () => switchAuthView('forgot'));
+  linkForgotToLogin?.addEventListener('click', () => switchAuthView('login'));
+  linkResetToLogin?.addEventListener('click', () => switchAuthView('login'));
 
   // Toggle de visibilidade da senha
   function setupPasswordToggle(btnId: string, inputId: string) {
@@ -318,6 +314,34 @@ function setupAuth() {
   setupPasswordToggle('btn-toggle-login-pwd', 'login-password');
   setupPasswordToggle('btn-toggle-reg-pwd', 'register-password');
   setupPasswordToggle('btn-toggle-reg-confirm-pwd', 'register-confirm-password');
+  setupPasswordToggle('btn-toggle-reset-pwd', 'reset-password');
+  setupPasswordToggle('btn-toggle-reset-confirm-pwd', 'reset-confirm-password');
+
+  // Helper para medição de força de senha
+  function updatePasswordStrength(
+    val: string,
+    strengthFill: HTMLElement | null,
+    strengthLabel: HTMLElement | null
+  ) {
+    if (!strengthFill || !strengthLabel) return;
+    if (val.length === 0) {
+      strengthFill.className = 'strength-fill';
+      strengthLabel.textContent = 'Mínimo 6 dígitos';
+      strengthLabel.style.color = 'var(--text-muted)';
+    } else if (val.length < 6) {
+      strengthFill.className = 'strength-fill weak';
+      strengthLabel.textContent = 'Fraca (mínimo 6 caracteres)';
+      strengthLabel.style.color = 'var(--accent-rose)';
+    } else if (val.length < 8 || !/[0-9]/.test(val)) {
+      strengthFill.className = 'strength-fill medium';
+      strengthLabel.textContent = 'Média (adicione números/símbolos)';
+      strengthLabel.style.color = 'var(--accent-amber)';
+    } else {
+      strengthFill.className = 'strength-fill strong';
+      strengthLabel.textContent = 'Excelente (senha segura e forte)';
+      strengthLabel.style.color = 'var(--accent-emerald)';
+    }
+  }
 
   // Validação e medidor de força de senha no cadastro
   const regPwdInput = document.getElementById('register-password') as HTMLInputElement;
@@ -327,35 +351,35 @@ function setupAuth() {
   const pwdMatchError = document.getElementById('pwd-match-error');
 
   regPwdInput?.addEventListener('input', () => {
-    const val = regPwdInput.value;
-    if (!strengthFill || !strengthLabel) return;
-
-    if (val.length === 0) {
-      strengthFill.className = 'strength-fill';
-      strengthLabel.textContent = 'Mínimo 6 caracteres';
-      strengthLabel.style.color = 'var(--text-muted)';
-    } else if (val.length < 6) {
-      strengthFill.className = 'strength-fill weak';
-      strengthLabel.textContent = 'Fraca (mínimo 6 caracteres)';
-      strengthLabel.style.color = 'var(--accent-rose)';
-    } else if (val.length < 8 || !/[0-9]/.test(val)) {
-      strengthFill.className = 'strength-fill medium';
-      strengthLabel.textContent = 'Média (adicione números)';
-      strengthLabel.style.color = 'var(--accent-amber)';
-    } else {
-      strengthFill.className = 'strength-fill strong';
-      strengthLabel.textContent = 'Excelente (senha segura)';
-      strengthLabel.style.color = 'var(--accent-emerald)';
-    }
-
+    updatePasswordStrength(regPwdInput.value, strengthFill, strengthLabel);
     if (regConfirmPwdInput && regConfirmPwdInput.value) {
-      pwdMatchError?.classList.toggle('hidden', regConfirmPwdInput.value === val);
+      pwdMatchError?.classList.toggle('hidden', regConfirmPwdInput.value === regPwdInput.value);
     }
   });
 
   regConfirmPwdInput?.addEventListener('input', () => {
     if (regPwdInput && regConfirmPwdInput.value) {
       pwdMatchError?.classList.toggle('hidden', regConfirmPwdInput.value === regPwdInput.value);
+    }
+  });
+
+  // Validação e medidor de força de senha na redefinição (Reset)
+  const resetPwdInput = document.getElementById('reset-password') as HTMLInputElement;
+  const resetConfirmPwdInput = document.getElementById('reset-confirm-password') as HTMLInputElement;
+  const resetStrengthFill = document.getElementById('reset-pwd-strength-fill');
+  const resetStrengthLabel = document.getElementById('reset-pwd-strength-label');
+  const resetPwdMatchError = document.getElementById('reset-pwd-match-error');
+
+  resetPwdInput?.addEventListener('input', () => {
+    updatePasswordStrength(resetPwdInput.value, resetStrengthFill, resetStrengthLabel);
+    if (resetConfirmPwdInput && resetConfirmPwdInput.value) {
+      resetPwdMatchError?.classList.toggle('hidden', resetConfirmPwdInput.value === resetPwdInput.value);
+    }
+  });
+
+  resetConfirmPwdInput?.addEventListener('input', () => {
+    if (resetPwdInput && resetConfirmPwdInput.value) {
+      resetPwdMatchError?.classList.toggle('hidden', resetConfirmPwdInput.value === resetPwdInput.value);
     }
   });
 
@@ -452,6 +476,98 @@ function setupAuth() {
     }
   });
 
+  // SUBMISSÃO DE RECUPERAÇÃO DE SENHA (SOLICITAÇÃO DE LINK)
+  formForgotPassword?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAuthAlert();
+
+    const emailInput = document.getElementById('forgot-email') as HTMLInputElement;
+    const submitBtn = document.getElementById('btn-forgot-submit') as HTMLButtonElement;
+    const email = emailInput.value.trim();
+
+    if (!email || !email.includes('@')) {
+      showAuthAlert('Por favor, informe um e-mail válido para recuperação.');
+      return;
+    }
+
+    const originalBtnHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> <span>Enviando link...</span>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    try {
+      const res = await authService.resetPasswordForEmail(email);
+      if (res.success) {
+        showAuthAlert(res.message || 'Link de recuperação enviado com sucesso!', 'success');
+        currentRecoveryEmail = email;
+        forgotSimBox?.classList.remove('hidden');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      } else {
+        showAuthAlert(res.error || 'Erro ao processar recuperação de senha.');
+      }
+    } catch (err: any) {
+      showAuthAlert(err.message || 'Erro ao solicitar recuperação.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+  });
+
+  // BOTÃO DE SIMULAÇÃO/TRANSIÇÃO DIRETA PARA DEFINIR NOVA SENHA
+  btnForgotSimulateReset?.addEventListener('click', () => {
+    switchAuthView('reset', currentRecoveryEmail);
+  });
+
+  // SUBMISSÃO DA NOVA SENHA (GRAVAÇÃO SEGURA)
+  formResetPassword?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAuthAlert();
+
+    const newPassword = (document.getElementById('reset-password') as HTMLInputElement).value;
+    const confirmNewPassword = (document.getElementById('reset-confirm-password') as HTMLInputElement).value;
+    const submitBtn = document.getElementById('btn-reset-submit') as HTMLButtonElement;
+
+    if (newPassword.length < 6) {
+      showAuthAlert('A nova senha deve conter no mínimo 6 caracteres.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      showAuthAlert('As senhas digitadas não conferem. Verifique e tente novamente.');
+      resetPwdMatchError?.classList.remove('hidden');
+      return;
+    }
+
+    const originalBtnHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> <span>Salvando nova senha...</span>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    try {
+      const res = await authService.updatePassword(newPassword, currentRecoveryEmail);
+      if (res.success) {
+        showToast(res.message || 'Senha alterada com sucesso!', 'success');
+        formResetPassword.reset();
+        switchAuthView('login');
+        const loginEmailInput = document.getElementById('login-email') as HTMLInputElement;
+        const loginPwdInput = document.getElementById('login-password') as HTMLInputElement;
+        if (loginEmailInput) loginEmailInput.value = currentRecoveryEmail;
+        if (loginPwdInput) {
+          loginPwdInput.value = '';
+          loginPwdInput.focus();
+        }
+      } else {
+        showAuthAlert(res.error || 'Erro ao atualizar senha.');
+      }
+    } catch (err: any) {
+      showAuthAlert(err.message || 'Erro ao redefinir a senha.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+  });
+
   // ACESSO RÁPIDO DE DEMONSTRAÇÃO
   document.getElementById('btn-demo-login')?.addEventListener('click', async () => {
     (document.getElementById('login-email') as HTMLInputElement).value = 'balbino@personaltrainer.com';
@@ -474,6 +590,18 @@ function setupAuth() {
     document.querySelector<HTMLButtonElement>('[data-settings-tab="supabase"]')?.click();
   });
 
+  // OUVINTE DO EVENTO DE RECUPERAÇÃO DE SENHA DO SUPABASE
+  authService.onPasswordRecovery((recoveryEmail: string) => {
+    switchAuthView('reset', recoveryEmail || 'balbino@personaltrainer.com');
+  });
+
+  // DETECTA SE A URL CONTÉM HASH DE RECUPERAÇÃO DO SUPABASE
+  if (typeof window !== 'undefined' && window.location.hash) {
+    if (window.location.hash.includes('type=recovery')) {
+      switchAuthView('reset');
+    }
+  }
+
   // OUVINTE DO ESTADO DE SESSÃO / REDIRECIONAMENTO AUTOMÁTICO
   authService.onAuthStateChanged((session: AuthUserSession | null) => {
     if (session && session.personal) {
@@ -481,35 +609,52 @@ function setupAuth() {
       authContainer?.classList.add('hidden');
       if (appLayout) appLayout.style.display = 'flex';
 
-      // Atualiza Perfil do Personal no Sidebar
+      const personalName = session.personal.nome || 'Eduardo Cunha Balbino';
+      const personalCref = session.personal.cref ? `CREF ${session.personal.cref}` : 'CREF 123456-G/SP';
+
+      // 1. Atualiza título da guia do navegador
+      document.title = `${personalName} — Balbino Pro`;
+
+      // 2. Atualiza Perfil do Personal no Top Header
+      const headerUserName = document.getElementById('header-user-name');
+      const headerUserCref = document.getElementById('header-user-cref');
+      const headerUserAvatar = document.getElementById('header-user-avatar');
+      if (headerUserName) headerUserName.textContent = personalName;
+      if (headerUserCref) headerUserCref.textContent = personalCref;
+
+      // 3. Atualiza Perfil do Personal no Sidebar
       const userNameEl = document.getElementById('sidebar-user-name');
       const userCrefEl = document.getElementById('sidebar-user-cref');
       const userAvatarEl = document.getElementById('sidebar-user-avatar');
 
-      if (userNameEl) userNameEl.textContent = session.personal.nome;
-      if (userCrefEl) userCrefEl.textContent = session.personal.cref ? `CREF ${session.personal.cref}` : 'CREF Não Informado';
-
-      if (userAvatarEl) {
-        const initials = session.personal.nome
-          .split(' ')
-          .filter(Boolean)
-          .map(p => p[0])
-          .slice(0, 2)
-          .join('')
-          .toUpperCase() || 'PB';
-        userAvatarEl.textContent = initials;
+      if (userNameEl) {
+        userNameEl.textContent = personalName;
+        userNameEl.title = personalName;
       }
+      if (userCrefEl) userCrefEl.textContent = personalCref;
+
+      const initials = personalName
+        .split(' ')
+        .filter(Boolean)
+        .map(p => p[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase() || 'EB';
+
+      if (userAvatarEl) userAvatarEl.textContent = initials;
+      if (headerUserAvatar) headerUserAvatar.textContent = initials;
 
       // Atualiza formulário do modal de configurações
       const cfgName = document.getElementById('cfg-personal-name') as HTMLInputElement;
       const cfgCref = document.getElementById('cfg-personal-cref') as HTMLInputElement;
-      if (cfgName) cfgName.value = session.personal.nome;
+      if (cfgName) cfgName.value = personalName;
       if (cfgCref) cfgCref.value = session.personal.cref || '';
     } else {
       // SESSÃO INATIVA -> Exibir Tela de Login / Cadastro
       authContainer?.classList.remove('hidden');
       if (appLayout) appLayout.style.display = 'none';
-      switchAuthTab('login');
+      document.title = 'Balbino Pro — Plataforma Inteligente para Personal Trainer & Nutrição';
+      switchAuthView('login');
     }
   });
 
@@ -559,10 +704,20 @@ function setupNavigation() {
       if (tabTitles[tabId] && titleEl && subEl) {
         titleEl.textContent = tabTitles[tabId].title;
         subEl.textContent = tabTitles[tabId].subtitle;
+        const currentPersonal = authService.getCurrentPersonal();
+        const personalName = currentPersonal?.nome ? ` — ${currentPersonal.nome}` : '';
+        document.title = `${tabTitles[tabId].title}${personalName} | Balbino Pro`;
       }
 
       if (typeof lucide !== 'undefined') lucide.createIcons();
     });
+  });
+
+  // Mobile Menu Toggle
+  const mobileToggle = document.getElementById('mobile-toggle');
+  const sidebar = document.getElementById('sidebar');
+  mobileToggle?.addEventListener('click', () => {
+    sidebar?.classList.toggle('open');
   });
 
   // Quick generate button
@@ -604,8 +759,8 @@ function renderDashboard() {
             </div>
           </td>
           <td><span class="badge-neutral">${student.objetivo}</span></td>
-          <td><span class="text-xs text-accent">Ficha A/B/C Ativa</span></td>
-          <td><span class="text-xs text-muted">2.450 kcal</span></td>
+          <td><span class="text-xs text-accent">${student.ficha || 'Ficha A/B/C Ativa'}</span></td>
+          <td><span class="text-xs text-muted">${student.calorias || '2.450 kcal'}</span></td>
           <td>
             <button class="btn-secondary btn-sm btn-open-student-ai" data-id="${student.id}">
               <i data-lucide="sparkles" style="width:14px;height:14px;"></i> Prescrever

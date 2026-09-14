@@ -36,8 +36,15 @@ export class PersonalTrainerAIService {
   private model: string;
 
   constructor(config?: AIServiceConfig) {
-    this.apiKey = config?.apiKey || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || '';
-    this.model = config?.model || 'gemini-1.5-pro';
+    const envKey =
+      (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) ||
+      (typeof import.meta !== 'undefined' && (import.meta as any).env?.GOOGLE_API_KEY) ||
+      (typeof process !== 'undefined' ? (process.env?.GEMINI_API_KEY || process.env?.GOOGLE_API_KEY || process.env?.OPENAI_API_KEY) : '') ||
+      '';
+    const localKey = typeof localStorage !== 'undefined' ? (localStorage.getItem('balbino_gemini_key') || '') : '';
+    
+    this.apiKey = config?.apiKey || envKey || localKey || '';
+    this.model = config?.model || (typeof localStorage !== 'undefined' ? (localStorage.getItem('balbino_gemini_model') || 'gemini-1.5-pro') : 'gemini-1.5-pro');
   }
 
   /**

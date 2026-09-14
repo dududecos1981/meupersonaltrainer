@@ -40,19 +40,21 @@ class AuthService {
   private client: SupabaseClient | null = null;
   private currentSession: AuthUserSession | null = null;
   private listeners: ((session: AuthUserSession | null) => void)[] = [];
+  private recoveryListeners: ((email: string) => void)[] = [];
   private isConfiguredRealSupabase: boolean = false;
+  private lastResetRequestTimestamp: number = 0;
 
   constructor() {
     this.initSupabaseClient();
     this.restoreSession();
   }
 
-  /**
-   * Inicializa o cliente Supabase com URL e Chave salvas ou padrão
-   */
   public initSupabaseClient(): void {
-    const customUrl = localStorage.getItem(STORAGE_SUPABASE_URL);
-    const customKey = localStorage.getItem(STORAGE_SUPABASE_KEY);
+    const envUrl = typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_SUPABASE_URL : '';
+    const envKey = typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_SUPABASE_ANON_KEY : '';
+
+    const customUrl = localStorage.getItem(STORAGE_SUPABASE_URL) || envUrl;
+    const customKey = localStorage.getItem(STORAGE_SUPABASE_KEY) || envKey;
 
     const supabaseUrl = customUrl || DEFAULT_SUPABASE_URL;
     const supabaseKey = customKey || DEFAULT_SUPABASE_KEY;
@@ -77,6 +79,9 @@ class AuthService {
             await this.handleSupabaseUserLogin(session.user, session);
           } else if (event === 'SIGNED_OUT') {
             this.clearLocalSession();
+          } else if (event === 'PASSWORD_RECOVERY') {
+            const email = session?.user?.email || '';
+            this.notifyRecoveryListeners(email);
           }
         });
       }
@@ -162,6 +167,20 @@ class AuthService {
 
   private notifyListeners(): void {
     this.listeners.forEach(cb => cb(this.currentSession));
+  }
+
+  /**
+   * Inscreve um ouvinte para evento de recuperação de senha (link de reset clicado)
+   */
+  public onPasswordRecovery(callback: (email: string) => void): () => void {
+    this.recoveryListeners.push(callback);
+    return () => {
+      this.recoveryListeners = this.recoveryListeners.filter(l => l !== callback);
+    };
+  }
+
+  private notifyRecoveryListeners(email: string): void {
+    this.recoveryListeners.forEach(cb => cb(email));
   }
 
   /**
@@ -377,7 +396,7 @@ class AuthService {
     if (localUsers.length === 0) {
       localUsers.push({
         id: '11111111-1111-1111-1111-111111111111',
-        nome: 'Personal Balbino',
+        nome: 'Eduardo Cunha Balbino',
         email: 'balbino@personaltrainer.com',
         cref: '123456-G/SP',
         password: 'senha123',
@@ -419,6 +438,129 @@ class AuthService {
       success: true,
       message: 'Login realizado com sucesso! Bem-vindo de volta.',
       data: userSession
+    };
+  }
+
+  /**
+   * RECUPERAÇÃO DE SENHA (ForgotPassword - Envio de link seguro por e-mail com Anti-Spam e Rate Limiting)
+   */
+  public async resetPasswordForEmail(email: string): Promise<AuthResult> {
+    if (!email || !email.includes('@') || !email.includes('.')) {
+      return { success: false, error: 'Por favor, informe um endereço de e-mail válido.' };
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const now = Date.now();
+
+    // Rate limiting: proteção contra spam de solicitações (mínimo de 30 segundos entre pedidos)
+    if (this.lastResetRequestTimestamp && now - this.lastResetRequestTimestamp < 30000) {
+      const waitSec = Math.ceil((30000 - (now - this.lastResetRequestTimestamp)) / 1000);
+      return {
+        success: false,
+        error: `Por favor, aguarde ${waitSec} segundos antes de solicitar um novo link de recuperação.`
+      };
+    }
+
+    this.lastResetRequestTimestamp = now;
+
+    // 1. Provedor Supabase Real
+    if (this.isConfiguredRealSupabase && this.client) {
+      try {
+        const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : undefined;
+        const { error } = await this.client.auth.resetPasswordForEmail(cleanEmail, {
+          redirectTo
+        });
+
+        if (error) {
+          return { success: false, error: this.formatErrorMessage(error.message) };
+        }
+
+        return {
+          success: true,
+          message: 'Se o e-mail informado estiver cadastrado em nossa base segura, enviamos um link com as instruções para redefinição da sua senha.',
+          data: { user: { id: '', email: cleanEmail }, personal: {} as any }
+        };
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Erro ao processar solicitação de recuperação de senha.' };
+      }
+    }
+
+    // 2. Modo Local / Fallback Seguro
+    const localUsers = this.getLocalUsers();
+    if (localUsers.length === 0) {
+      localUsers.push({
+        id: '11111111-1111-1111-1111-111111111111',
+        nome: 'Eduardo Cunha Balbino',
+        email: 'balbino@personaltrainer.com',
+        cref: '123456-G/SP',
+        password: 'senha123',
+        created_at: new Date().toISOString()
+      });
+      this.saveLocalUsers(localUsers);
+    }
+
+    return {
+      success: true,
+      message: 'Se o e-mail informado estiver cadastrado em nossa base segura, enviamos um link com as instruções para redefinição da sua senha.',
+      data: { user: { id: '', email: cleanEmail }, personal: {} as any }
+    };
+  }
+
+  /**
+   * REDEFINIÇÃO DE SENHA (UpdatePassword - Gravação segura da nova senha)
+   */
+  public async updatePassword(newPassword: string, emailForLocalFallback?: string): Promise<AuthResult> {
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, error: 'A nova senha deve conter no mínimo 6 caracteres.' };
+    }
+
+    // 1. Provedor Supabase Real
+    if (this.isConfiguredRealSupabase && this.client) {
+      try {
+        const { data, error } = await this.client.auth.updateUser({
+          password: newPassword
+        });
+
+        if (error) {
+          return { success: false, error: this.formatErrorMessage(error.message) };
+        }
+
+        if (data.user) {
+          return {
+            success: true,
+            message: 'Senha redefinida com sucesso! Você já pode acessar o sistema.'
+          };
+        }
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Erro ao redefinir a senha no Supabase.' };
+      }
+    }
+
+    // 2. Modo Local / Fallback
+    const localUsers = this.getLocalUsers();
+    const targetEmail = (emailForLocalFallback || 'balbino@personaltrainer.com').toLowerCase();
+    const userIndex = localUsers.findIndex(u => u.email.toLowerCase() === targetEmail);
+
+    if (userIndex >= 0) {
+      localUsers[userIndex].password = newPassword;
+      this.saveLocalUsers(localUsers);
+    } else {
+      if (targetEmail === 'balbino@personaltrainer.com' || localUsers.length === 0) {
+        localUsers.push({
+          id: '11111111-1111-1111-1111-111111111111',
+          nome: 'Eduardo Cunha Balbino',
+          email: 'balbino@personaltrainer.com',
+          cref: '123456-G/SP',
+          password: newPassword,
+          created_at: new Date().toISOString()
+        });
+        this.saveLocalUsers(localUsers);
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Nova senha salva com sucesso! Faça login com suas novas credenciais.'
     };
   }
 
