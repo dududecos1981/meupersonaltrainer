@@ -24,5 +24,10 @@ export default defineConfig({
   },
   preview: {
     port: 4173
+  },
+  // @ts-ignore
+  test: {
+    environment: 'happy-dom',
+    globals: true
   }
 });

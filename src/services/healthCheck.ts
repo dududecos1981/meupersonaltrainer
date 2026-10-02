@@ -32,24 +32,26 @@ class HealthCheckService {
   public async getSystemHealth(): Promise<SystemHealthStatus> {
     const supabaseUrl =
       (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL) ||
-      localStorage.getItem('balbino_supabase_url') ||
+      (typeof localStorage !== 'undefined' ? localStorage.getItem('balbino_supabase_url') : '') ||
       '';
 
     const geminiKey =
       (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) ||
-      localStorage.getItem('balbino_gemini_key') ||
+      (typeof localStorage !== 'undefined' ? localStorage.getItem('balbino_gemini_key') : '') ||
       '';
 
     const model =
-      localStorage.getItem('balbino_gemini_model') || 'gemini-1.5-pro';
+      (typeof localStorage !== 'undefined' ? localStorage.getItem('balbino_gemini_model') : '') || 'gemini-1.5-pro';
 
     let storageAccessible = false;
-    try {
-      localStorage.setItem('__health_check__', '1');
-      localStorage.removeItem('__health_check__');
-      storageAccessible = true;
-    } catch {
-      storageAccessible = false;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('__health_check__', '1');
+        localStorage.removeItem('__health_check__');
+        storageAccessible = true;
+      } catch {
+        storageAccessible = false;
+      }
     }
 
     const isSupabaseReady = Boolean(supabaseUrl && !supabaseUrl.includes('xyzcompany'));

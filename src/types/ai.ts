@@ -16,7 +16,7 @@ export interface WorkoutGenerationInput {
   objetivo_principal: 'HIPERTROFIA' | 'EMAGRECIMENTO' | 'CONDICIONAMENTO' | 'REABILITACAO' | string;
   frequencia_semanal: number;
   equipamentos_disponiveis: 'ACADEMIA_COMPLETA' | 'HALTERES' | 'PESO_CORPORAL' | string;
-  lesoes_ou_dores: string;
+  lesoes_ou_dores?: string;
 }
 
 export interface WorkoutExerciseOutput {
@@ -52,8 +52,8 @@ export interface NutritionGenerationInput {
   altura: number;
   tmb: number; // Taxa Metabólica Basal
   get: number; // Gasto Energético Total
-  preferencias_alimentares: string;
-  alergias: string;
+  preferencias_alimentares?: string;
+  alergias?: string;
   horario_treino: string;
 }
 
