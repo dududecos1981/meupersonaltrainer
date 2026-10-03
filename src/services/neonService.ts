@@ -42,6 +42,22 @@ export interface LGPDExportPackage {
   hashAuditoria: string;
 }
 
+export function toSafeUUID(id?: string | null): string {
+  if (!id) {
+    return typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : '11111111-1111-4111-8111-111111111111';
+  }
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(id)) return id;
+  if (id === 'personal-balbino') return '11111111-1111-1111-1111-111111111111';
+
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return '00000000-0000-4000-8000-' + Math.random().toString(16).substring(2, 14).padEnd(12, '0');
+}
+
 class NeonService {
   private sql: NeonQueryFunction<false, false> | null = null;
   private connectionString: string = '';
@@ -60,10 +76,12 @@ class NeonService {
       (typeof import.meta !== 'undefined' && (import.meta as any).env?.DATABASE_URL) ||
       '';
 
-    const savedUrl =
-      customConnectionString ||
-      (typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_NEON_URL) : '') ||
-      envUrl;
+    let savedUrl = envUrl;
+    if (customConnectionString !== undefined) {
+      savedUrl = customConnectionString;
+    } else if (typeof localStorage !== 'undefined' && localStorage.getItem(STORAGE_NEON_URL) !== null) {
+      savedUrl = localStorage.getItem(STORAGE_NEON_URL) || '';
+    }
 
     this.connectionString = (savedUrl || '').trim();
     this.isConfigured = Boolean(
@@ -178,28 +196,31 @@ class NeonService {
   // ============================================================================
 
   public async getPacientes(personalId: string): Promise<Paciente[]> {
+    const safePersonalId = toSafeUUID(personalId);
     if (this.isConfigured && this.sql) {
       try {
         const rows = await this.sql`
           SELECT id, personal_id, nome, email, telefone, data_nascimento, sexo, objetivo_principal, termo_aceite_lgpd, data_aceite_lgpd, created_at
           FROM public.pacientes
-          WHERE personal_id = ${personalId}::uuid OR personal_id IS NULL
+          WHERE personal_id = ${safePersonalId}::uuid OR personal_id IS NULL
           ORDER BY nome ASC
         `;
-        return rows as Paciente[];
+        return (rows as Paciente[]).filter((p) => p && !p.nome?.includes('Carlos Eduardo Silva') && p.id !== '22222222-2222-2222-2222-222222222222');
       } catch (e) {
         console.warn('[NeonService] Erro ao buscar pacientes no Neon, usando fallback local:', e);
       }
     }
-    return this.getLocalList<Paciente>('pacientes');
+    return this.getLocalList<Paciente>('pacientes').filter((p) => p && !p.nome?.includes('Carlos Eduardo Silva') && p.id !== '22222222-2222-2222-2222-222222222222');
   }
 
   public async savePaciente(paciente: Paciente): Promise<Paciente> {
-    const isNew = !paciente.id || paciente.id.length < 10;
-    const finalId = isNew ? crypto.randomUUID() : paciente.id;
+    const finalId = paciente.id && paciente.id.length > 0 ? paciente.id : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'pac-' + Date.now());
+    const safeSqlId = toSafeUUID(finalId);
+    const safePersonalId = paciente.personal_id ? toSafeUUID(paciente.personal_id) : '11111111-1111-1111-1111-111111111111';
     const record: Paciente = {
       ...paciente,
       id: finalId,
+      personal_id: safePersonalId,
       created_at: paciente.created_at || new Date().toISOString(),
       termo_aceite_lgpd: paciente.termo_aceite_lgpd ?? true,
       data_aceite_lgpd: paciente.data_aceite_lgpd || new Date().toISOString()
@@ -210,8 +231,8 @@ class NeonService {
         await this.sql`
           INSERT INTO public.pacientes (id, personal_id, nome, email, telefone, data_nascimento, sexo, objetivo_principal, termo_aceite_lgpd, data_aceite_lgpd)
           VALUES (
-            ${record.id}::uuid,
-            ${record.personal_id || null}::uuid,
+            ${safeSqlId}::uuid,
+            ${record.personal_id}::uuid,
             ${record.nome},
             ${record.email || null},
             ${record.telefone || null},
@@ -230,7 +251,7 @@ class NeonService {
             objetivo_principal = EXCLUDED.objetivo_principal,
             termo_aceite_lgpd = EXCLUDED.termo_aceite_lgpd;
         `;
-        await this.logAuditoria(record.personal_id || 'anon', isNew ? 'INSERCAO' : 'EDICAO', `Paciente ${record.nome} (${record.id})`);
+        await this.logAuditoria(record.personal_id || 'anon', 'INSERCAO', `Paciente ${record.nome} (${record.id})`);
       } catch (e) {
         console.warn('[NeonService] Erro ao salvar paciente no Neon, mantendo em cache local:', e);
       }
@@ -244,16 +265,19 @@ class NeonService {
    * Exclusão Definitiva (Direito ao Esquecimento - Art. 18 LGPD)
    */
   public async deletePacienteLGPD(pacienteId: string, personalId: string, motivo: string = 'Solicitação do Titular'): Promise<boolean> {
+    const safePacId = toSafeUUID(pacienteId);
+    const safePersId = toSafeUUID(personalId);
     if (this.isConfigured && this.sql) {
       try {
-        await this.sql`DELETE FROM public.pacientes WHERE id = ${pacienteId}::uuid`;
-        await this.logAuditoria(personalId, 'EXCLUSAO_DIREITO_ESQUECIMENTO', `Paciente ${pacienteId} excluído com todos os registros associados. Motivo: ${motivo}`);
+        await this.sql`DELETE FROM public.pacientes WHERE id = ${safePacId}::uuid`;
+        await this.logAuditoria(safePersId, 'EXCLUSAO_DIREITO_ESQUECIMENTO', `Paciente ${pacienteId} excluído com todos os registros associados. Motivo: ${motivo}`);
       } catch (e) {
         console.error('[NeonService] Erro ao excluir paciente no Neon:', e);
       }
     }
 
     this.removeLocalItem('pacientes', pacienteId);
+    this.removeLocalItem('pacientes', safePacId);
     this.removeLocalChildren('avaliacoes', 'paciente_id', pacienteId);
     this.removeLocalChildren('fichas_treino', 'paciente_id', pacienteId);
     this.removeLocalChildren('planos_alimentares', 'paciente_id', pacienteId);
@@ -519,7 +543,14 @@ class NeonService {
     if (typeof localStorage === 'undefined') return [];
     try {
       const data = JSON.parse(localStorage.getItem(`${STORAGE_LOCAL_DATA}_${key}`) || '[]');
-      return Array.isArray(data) ? data : [];
+      if (!Array.isArray(data)) return [];
+      if (key === 'pacientes') {
+        return (data as any[]).filter((item: any) => item && !item.nome?.includes('Carlos Eduardo Silva') && item.id !== '22222222-2222-2222-2222-222222222222') as T[];
+      }
+      if (key === 'planilhas') {
+        return (data as any[]).filter((item: any) => item && item.paciente_id !== '22222222-2222-2222-2222-222222222222') as T[];
+      }
+      return data;
     } catch {
       return [];
     }

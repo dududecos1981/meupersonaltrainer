@@ -15,70 +15,74 @@ declare const lucide: any;
 // BASE DE DADOS INICIAL / ESTADO GLOBAL
 // ==============================================================================
 
-const INITIAL_PLANILHAS: PlanilhaMetrica[] = [
-  {
-    id: 'planilha-1',
-    personal_id: 'personal-balbino',
-    paciente_id: '22222222-2222-2222-2222-222222222222',
-    titulo: 'Evolução de Cargas no Supino e Agachamento (2026)',
-    tipo: 'EVOLUCAO_CARGAS',
-    dados_json: {
-      headers: ['Data', 'Exercício', 'Séries', 'Reps', 'Carga (kg)', 'RPE'],
-      rows: [
-        ['2026-08-01', 'Supino Reto', '4', '8', '70', '8'],
-        ['2026-08-15', 'Supino Reto', '4', '8', '74', '8.5'],
-        ['2026-09-01', 'Supino Reto', '4', '8', '78', '8'],
-        ['2026-09-15', 'Supino Reto', '4', '8', '82', '9'],
-        ['2026-10-01', 'Supino Reto', '4', '8', '85', '8.5']
-      ]
-    },
-    arquivo_csv: 'Data,Exercício,Séries,Reps,Carga_kg,RPE\n2026-08-01,Supino Reto,4,8,70,8\n2026-08-15,Supino Reto,4,8,74,8.5\n2026-09-01,Supino Reto,4,8,78,8\n2026-09-15,Supino Reto,4,8,82,9\n2026-10-01,Supino Reto,4,8,85,8.5',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'planilha-2',
-    personal_id: 'personal-balbino',
-    paciente_id: '22222222-2222-2222-2222-222222222222',
-    titulo: 'Controle de Frequência Semanal e Assiduidade',
-    tipo: 'FREQUENCIA_TREINOS',
-    dados_json: {
-      headers: ['Semana', 'Treinos Previstos', 'Treinos Realizados', 'Aderência (%)'],
-      rows: [
-        ['Semana 1 (Ago)', '4', '4', '100%'],
-        ['Semana 2 (Ago)', '4', '3', '75%'],
-        ['Semana 3 (Ago)', '4', '4', '100%'],
-        ['Semana 4 (Ago)', '4', '4', '100%'],
-        ['Semana 1 (Set)', '4', '4', '100%']
-      ]
-    },
-    arquivo_csv: 'Semana,Treinos Previstos,Treinos Realizados,Aderência\nSemana 1 (Ago),4,4,100%\nSemana 2 (Ago),4,3,75%\nSemana 3 (Ago),4,4,100%\nSemana 4 (Ago),4,4,100%\nSemana 1 (Set),4,4,100%',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-];
+export type StudentRecord = Paciente & {
+  idade: number;
+  peso: number;
+  altura: number;
+  objetivo: string;
+  lesoes: string;
+  rotina: string;
+  nivel: string;
+  ficha?: string;
+  calorias?: string;
+};
 
-let planilhas: PlanilhaMetrica[] = [...INITIAL_PLANILHAS];
+const STORAGE_STUDENTS_KEY = 'balbino_students_list_v2';
+const STORAGE_PLANILHAS_KEY = 'balbino_planilhas_list_v2';
 
-const INITIAL_STUDENTS: (Paciente & { idade: number; peso: number; altura: number; objetivo: string; lesoes: string; rotina: string; nivel: string; ficha?: string; calorias?: string })[] = [
-  {
-    id: '22222222-2222-2222-2222-222222222222',
-    nome: 'Carlos Eduardo Silva',
-    email: 'carlos.silva@email.com',
-    telefone: '(11) 98765-4321',
-    data_nascimento: '1998-04-12',
-    sexo: 'M',
-    idade: 28,
-    peso: 78.5,
-    altura: 178,
-    nivel: 'INTERMEDIARIO',
-    objetivo: 'HIPERTROFIA',
-    ficha: 'Ficha ABC Hipertrofia (4x)',
-    calorias: '2.650 kcal',
-    lesoes: 'Leve desconforto no ombro direito em abdução máxima',
-    rotina: 'Treina às 06:30 em jejum com pré-treino leve; trabalha sentado até 18h.'
+function loadStoredStudents(): StudentRecord[] {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(STORAGE_STUDENTS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(s => s && s.nome && !s.nome.includes('Carlos Eduardo Silva') && s.id !== '22222222-2222-2222-2222-222222222222');
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Erro ao carregar alunos do cache local:', e);
   }
-];
+  return [];
+}
+
+function saveStoredStudents(list: StudentRecord[]): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_STUDENTS_KEY, JSON.stringify(list));
+    }
+  } catch (e) {
+    console.warn('Erro ao salvar alunos no cache local:', e);
+  }
+}
+
+function loadStoredPlanilhas(): PlanilhaMetrica[] {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(STORAGE_PLANILHAS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(p => p && p.paciente_id !== '22222222-2222-2222-2222-222222222222');
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Erro ao carregar planilhas do cache local:', e);
+  }
+  return [];
+}
+
+function saveStoredPlanilhas(list: PlanilhaMetrica[]): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_PLANILHAS_KEY, JSON.stringify(list));
+    }
+  } catch (e) {
+    console.warn('Erro ao salvar planilhas no cache local:', e);
+  }
+}
 
 const INITIAL_EXERCISES: Exercicio[] = [
   { id: 'ex-1', nome: 'Supino Reto com Barra', grupo_muscular: 'Peitoral', equipamento: 'Barra', instrucoes: 'Descer até a linha dos mamilos com escápulas aduzidas e pés firmes no solo.' },
@@ -106,9 +110,10 @@ const INITIAL_EXERCISES: Exercicio[] = [
 ];
 
 // Current State
-let students = [...INITIAL_STUDENTS];
-let exercises = [...INITIAL_EXERCISES];
-let selectedStudentId = students[0].id;
+let students: StudentRecord[] = loadStoredStudents();
+let planilhas: PlanilhaMetrica[] = loadStoredPlanilhas();
+let exercises: Exercicio[] = [...INITIAL_EXERCISES];
+let selectedStudentId: string = students.length > 0 ? students[0].id : '';
 let isApproved = false;
 
 // Current Active Plan (Output of AI & Editor)
@@ -232,12 +237,42 @@ document.addEventListener('DOMContentLoaded', () => {
   setupPlanilhasTab();
   setupLGPDTab();
   setupNeonDatabaseHub();
+  syncFromNeonCloud();
 
   // Refresh icons
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
   }
 });
+
+async function syncFromNeonCloud() {
+  try {
+    const cloudStudents = await neonService.getPacientes('personal-balbino');
+    if (cloudStudents && cloudStudents.length > 0) {
+      const formatted: StudentRecord[] = cloudStudents.map(cs => ({
+        ...cs,
+        idade: (cs as any).idade || 30,
+        peso: (cs as any).peso || 70,
+        altura: (cs as any).altura || 170,
+        objetivo: (cs as any).objetivo || cs.objetivo_principal || 'EMAGRECIMENTO',
+        lesoes: (cs as any).lesoes || '',
+        rotina: (cs as any).rotina || '',
+        nivel: (cs as any).nivel || 'INICIANTE'
+      }));
+      students = formatted;
+      saveStoredStudents(students);
+      renderDashboard();
+      renderStudentsList();
+      setupEvaluationTab();
+      setupAIStudio();
+      renderStudentPhonePreview();
+      setupPlanilhasTab();
+      setupLGPDTab();
+    }
+  } catch (err) {
+    console.warn('Sync inicial do Neon:', err);
+  }
+}
 
 // Toast notification helper
 function showToast(message: string, type: 'success' | 'error' | 'info' = 'success') {
@@ -813,52 +848,72 @@ function renderDashboard() {
   if (badgeEl) badgeEl.textContent = String(students.length);
 
   if (selectQuickAI) {
-    selectQuickAI.innerHTML = students.map(s => `<option value="${s.id}">${s.nome} (${s.objetivo})</option>`).join('');
+    if (students.length === 0) {
+      selectQuickAI.innerHTML = '<option value="">Nenhum aluno cadastrado</option>';
+    } else {
+      selectQuickAI.innerHTML = students.map(s => `<option value="${s.id}">${s.nome} (${s.objetivo})</option>`).join('');
+    }
   }
 
   if (tbody) {
-    tbody.innerHTML = students.map(student => {
-      const initials = student.nome.split(' ').map(n => n[0]).slice(0, 2).join('');
-      return `
+    if (students.length === 0) {
+      tbody.innerHTML = `
         <tr>
-          <td>
-            <div class="student-avatar-cell">
-              <div class="student-initials">${initials}</div>
-              <div>
-                <div class="student-meta-title">${student.nome}</div>
-                <div class="student-meta-sub">${student.idade} anos • ${student.peso}kg • ${student.altura}cm</div>
-              </div>
-            </div>
-          </td>
-          <td><span class="badge-neutral">${student.objetivo}</span></td>
-          <td><span class="text-xs text-accent">${student.ficha || 'Ficha A/B/C Ativa'}</span></td>
-          <td><span class="text-xs text-muted">${student.calorias || '2.450 kcal'}</span></td>
-          <td>
-            <button class="btn-secondary btn-sm btn-open-student-ai" data-id="${student.id}">
-              <i data-lucide="sparkles" style="width:14px;height:14px;"></i> Prescrever
-            </button>
+          <td colspan="5" class="text-center py-4 text-muted">
+            <i data-lucide="users" style="width:24px;height:24px;margin-bottom:6px;opacity:0.4;"></i>
+            <p class="mb-0">Nenhum aluno cadastrado ainda. Clique no botão <strong>"+ Novo Aluno"</strong> para cadastrar.</p>
           </td>
         </tr>
       `;
-    }).join('');
+    } else {
+      tbody.innerHTML = students.map(student => {
+        const initials = student.nome.split(' ').map(n => n[0]).slice(0, 2).join('');
+        return `
+          <tr>
+            <td>
+              <div class="student-avatar-cell">
+                <div class="student-initials">${initials}</div>
+                <div>
+                  <div class="student-meta-title">${student.nome}</div>
+                  <div class="student-meta-sub">${student.idade} anos • ${student.peso}kg • ${student.altura}cm</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge-neutral">${student.objetivo}</span></td>
+            <td><span class="text-xs text-accent">${student.ficha || 'Ficha A/B/C Ativa'}</span></td>
+            <td><span class="text-xs text-muted">${student.calorias || '2.450 kcal'}</span></td>
+            <td>
+              <button class="btn-secondary btn-sm btn-open-student-ai" data-id="${student.id}">
+                <i data-lucide="sparkles" style="width:14px;height:14px;"></i> Prescrever
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
 
-    tbody.querySelectorAll('.btn-open-student-ai').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
-        if (id) {
-          selectedStudentId = id;
-          const aiNavBtn = document.querySelector<HTMLButtonElement>('[data-tab="gerador-ia"]');
-          aiNavBtn?.click();
-          const aiSelect = document.getElementById('ai-form-student-select') as HTMLSelectElement;
-          if (aiSelect) aiSelect.value = id;
-        }
+      tbody.querySelectorAll('.btn-open-student-ai').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
+          if (id) {
+            selectedStudentId = id;
+            const aiNavBtn = document.querySelector<HTMLButtonElement>('[data-tab="gerador-ia"]');
+            aiNavBtn?.click();
+            const aiSelect = document.getElementById('ai-form-student-select') as HTMLSelectElement;
+            if (aiSelect) aiSelect.value = id;
+          }
+        });
       });
-    });
+    }
   }
 
   // Dashboard quick AI buttons
   document.querySelectorAll('.btn-ai-action').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      if (students.length === 0) {
+        showToast('Cadastre um aluno primeiro para gerar prescrições com IA.', 'info');
+        openStudentModal();
+        return;
+      }
       const action = (e.currentTarget as HTMLElement).getAttribute('data-action');
       const studentId = selectQuickAI?.value || students[0].id;
       selectedStudentId = studentId;
@@ -913,6 +968,22 @@ function renderStudentsList() {
     (s.email && s.email.toLowerCase().includes(searchQuery))
   );
 
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="card p-5 text-center text-muted" style="grid-column: 1 / -1; background: var(--bg-surface); border: 1px dashed var(--border-color); border-radius: var(--radius-lg); margin-top: 10px;">
+        <i data-lucide="user-plus" style="width: 44px; height: 44px; margin: 0 auto 12px; color: var(--accent-indigo); opacity: 0.8;"></i>
+        <h4 style="color: #fff; margin-bottom: 6px;">Nenhum aluno encontrado</h4>
+        <p class="text-xs text-muted mb-3">Cadastre seus alunos para iniciar o acompanhamento, prescrição por IA e avaliações físicas.</p>
+        <button class="btn-primary btn-sm mx-auto" id="btn-empty-add-student" style="width: max-content;">
+          <i data-lucide="plus"></i> Cadastrar Primeiro Aluno
+        </button>
+      </div>
+    `;
+    document.getElementById('btn-empty-add-student')?.addEventListener('click', () => openStudentModal());
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    return;
+  }
+
   container.innerHTML = filtered.map(student => {
     const initials = student.nome.split(' ').map(n => n[0]).slice(0, 2).join('');
     const imc = (student.peso / Math.pow(student.altura / 100, 2)).toFixed(1);
@@ -950,7 +1021,7 @@ function renderStudentsList() {
         ` : ''}
 
         <p class="text-xs text-muted" style="line-height:1.4;">
-          <strong>Rotina:</strong> ${student.rotina}
+          <strong>Rotina:</strong> ${student.rotina || 'Não informada'}
         </p>
 
         <div class="student-card-footer">
@@ -962,6 +1033,9 @@ function renderStudentsList() {
           </button>
           <button class="btn-icon-ghost btn-student-edit" data-id="${student.id}" title="Editar">
             <i data-lucide="edit-2" style="width:16px;height:16px;"></i>
+          </button>
+          <button class="btn-icon-ghost text-danger btn-student-delete" data-id="${student.id}" title="Excluir Aluno">
+            <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
           </button>
         </div>
       </div>
@@ -1006,6 +1080,28 @@ function renderStudentsList() {
     });
   });
 
+  container.querySelectorAll('.btn-student-delete').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = (e.currentTarget as HTMLElement).getAttribute('data-id');
+      if (!id) return;
+      const targetStudent = students.find(s => s.id === id);
+      if (!targetStudent) return;
+      if (confirm(`Deseja realmente excluir o aluno "${targetStudent.nome}"?\nTodos os treinos e dados vinculados serão excluídos com segurança.`)) {
+        students = students.filter(s => s.id !== id);
+        saveStoredStudents(students);
+        await neonService.deletePacienteLGPD(id, 'personal-balbino', 'Exclusão pelo personal trainer');
+        renderDashboard();
+        renderStudentsList();
+        setupEvaluationTab();
+        setupAIStudio();
+        renderStudentPhonePreview();
+        setupPlanilhasTab();
+        setupLGPDTab();
+        showToast(`Aluno "${targetStudent.nome}" excluído com sucesso!`, 'info');
+      }
+    });
+  });
+
   document.getElementById('search-students')?.addEventListener('input', () => {
     renderStudentsList();
   });
@@ -1025,7 +1121,20 @@ function setupEvaluationTab() {
   const activitySelect = document.getElementById('eval-activity-factor') as HTMLSelectElement;
 
   if (select) {
-    select.innerHTML = students.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
+    if (students.length === 0) {
+      select.innerHTML = '<option value="">Nenhum aluno cadastrado</option>';
+      if (weightInput) weightInput.value = '';
+      if (heightInput) heightInput.value = '';
+    } else {
+      select.innerHTML = students.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
+      const current = students.find(item => item.id === select.value) || students[0];
+      if (current) {
+        select.value = current.id;
+        if (weightInput) weightInput.value = String(current.peso);
+        if (heightInput) heightInput.value = String(current.altura);
+      }
+    }
+
     select.addEventListener('change', () => {
       const s = students.find(item => item.id === select.value);
       if (s) {
@@ -1043,6 +1152,10 @@ function setupEvaluationTab() {
   recalculateAntropometry();
 
   document.getElementById('btn-save-evaluation')?.addEventListener('click', () => {
+    if (students.length === 0) {
+      showToast('Cadastre um aluno primeiro para salvar a avaliação.', 'error');
+      return;
+    }
     showToast('Avaliação antropométrica salva com sucesso no PostgreSQL!', 'success');
   });
 }
@@ -1140,7 +1253,20 @@ function setupAIStudio() {
   const dietPrefsInput = document.getElementById('ai-form-diet-prefs') as HTMLInputElement;
 
   if (selectStudent) {
-    selectStudent.innerHTML = students.map(s => `<option value="${s.id}">${s.nome} (${s.objetivo})</option>`).join('');
+    if (students.length === 0) {
+      selectStudent.innerHTML = '<option value="">Nenhum aluno cadastrado</option>';
+    } else {
+      selectStudent.innerHTML = students.map(s => `<option value="${s.id}">${s.nome} (${s.objetivo})</option>`).join('');
+      const current = students.find(item => item.id === selectStudent.value) || students[0];
+      if (current) {
+        selectStudent.value = current.id;
+        if (goalSelect) goalSelect.value = current.objetivo;
+        if (levelSelect) levelSelect.value = current.nivel;
+        if (injuriesInput) injuriesInput.value = current.lesoes || '';
+        if (dietPrefsInput) dietPrefsInput.value = current.rotina || '';
+      }
+    }
+
     selectStudent.addEventListener('change', () => {
       const s = students.find(item => item.id === selectStudent.value);
       if (s) {
@@ -1170,6 +1296,11 @@ function setupAIStudio() {
 }
 
 async function executeAIGeneration() {
+  const selectStudent = document.getElementById('ai-form-student-select') as HTMLSelectElement;
+  if (!selectStudent || !selectStudent.value || students.length === 0) {
+    showToast('Cadastre ou selecione um aluno para prescrever treino com IA.', 'error');
+    return;
+  }
   const emptyState = document.getElementById('ai-preview-empty');
   const loadingState = document.getElementById('ai-preview-loading');
   const contentState = document.getElementById('ai-preview-content');
@@ -1562,15 +1693,27 @@ function renderStudentPhonePreview() {
   const avatarText = document.getElementById('phone-avatar-text');
   const studentNameEl = document.getElementById('phone-student-name');
 
-  if (select) {
-    select.innerHTML = students.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
-    select.addEventListener('change', () => {
-      const st = students.find(s => s.id === select.value);
-      if (st) {
-        if (studentNameEl) studentNameEl.textContent = st.nome;
-        if (avatarText) avatarText.textContent = st.nome.split(' ').map(n => n[0]).slice(0, 2).join('');
+  if (students.length === 0) {
+    if (select) select.innerHTML = '<option value="">Nenhum aluno cadastrado</option>';
+    if (studentNameEl) studentNameEl.textContent = 'Nenhum Aluno Cadastrado';
+    if (avatarText) avatarText.textContent = '--';
+  } else {
+    if (select) {
+      select.innerHTML = students.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
+      const current = students.find(s => s.id === select.value) || students[0];
+      if (current) {
+        select.value = current.id;
+        if (studentNameEl) studentNameEl.textContent = current.nome;
+        if (avatarText) avatarText.textContent = current.nome.split(' ').map(n => n[0]).slice(0, 2).join('');
       }
-    });
+      select.addEventListener('change', () => {
+        const st = students.find(s => s.id === select.value);
+        if (st) {
+          if (studentNameEl) studentNameEl.textContent = st.nome;
+          if (avatarText) avatarText.textContent = st.nome.split(' ').map(n => n[0]).slice(0, 2).join('');
+        }
+      });
+    }
   }
 
   // Phone tab switcher (Treino vs Dieta)
@@ -2204,24 +2347,50 @@ function setupModals() {
 
   document.getElementById('btn-save-student-submit')?.addEventListener('click', async (e) => {
     e.preventDefault();
-    const name = (document.getElementById('sf-name') as HTMLInputElement).value;
-    if (!name) return;
+    const nameInput = document.getElementById('sf-name') as HTMLInputElement;
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name) {
+      showToast('Por favor, informe o Nome Completo do aluno para salvar.', 'error');
+      nameInput?.focus();
+      return;
+    }
+
+    const rawAge = (document.getElementById('sf-age') as HTMLInputElement)?.value?.trim() || '';
+    const parsedAge = parseInt(rawAge, 10);
+    const idade = !isNaN(parsedAge) && parsedAge > 0 ? parsedAge : 30;
+
+    const rawWeight = (document.getElementById('sf-weight') as HTMLInputElement)?.value?.trim().replace(',', '.') || '';
+    const parsedWeight = parseFloat(rawWeight);
+    const peso = !isNaN(parsedWeight) && parsedWeight > 0 ? parsedWeight : 70;
+
+    const rawHeight = (document.getElementById('sf-height') as HTMLInputElement)?.value?.trim().replace(',', '.') || '';
+    let parsedHeight = parseFloat(rawHeight);
+    if (!isNaN(parsedHeight) && parsedHeight > 0) {
+      if (parsedHeight < 3) {
+        parsedHeight = Math.round(parsedHeight * 100);
+      }
+    } else {
+      parsedHeight = 170;
+    }
 
     const lgpdConsent = (document.getElementById('sf-lgpd-consent') as HTMLInputElement)?.checked ?? true;
+    const formId = (document.getElementById('student-form-id') as HTMLInputElement)?.value?.trim();
+    const finalId = formId && formId.length > 5 ? formId : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `stu-${Date.now()}`);
 
-    const newStudent = {
-      id: (document.getElementById('student-form-id') as HTMLInputElement).value || `stu-${Date.now()}`,
+    const newStudent: StudentRecord = {
+      id: finalId,
+      personal_id: 'personal-balbino',
       nome: name,
-      email: (document.getElementById('sf-email') as HTMLInputElement).value,
-      telefone: (document.getElementById('sf-phone') as HTMLInputElement).value,
-      sexo: (document.getElementById('sf-gender') as HTMLSelectElement).value,
-      idade: parseInt((document.getElementById('sf-age') as HTMLInputElement).value) || 28,
-      peso: parseFloat((document.getElementById('sf-weight') as HTMLInputElement).value) || 70,
-      altura: parseFloat((document.getElementById('sf-height') as HTMLInputElement).value) || 170,
-      nivel: (document.getElementById('sf-experience') as HTMLSelectElement).value,
-      objetivo: (document.getElementById('sf-goal') as HTMLSelectElement).value,
-      lesoes: (document.getElementById('sf-injuries') as HTMLTextAreaElement).value,
-      rotina: (document.getElementById('sf-routine') as HTMLTextAreaElement).value,
+      email: (document.getElementById('sf-email') as HTMLInputElement)?.value?.trim() || '',
+      telefone: (document.getElementById('sf-phone') as HTMLInputElement)?.value?.trim() || '',
+      sexo: (document.getElementById('sf-gender') as HTMLSelectElement)?.value || 'M',
+      idade,
+      peso,
+      altura: parsedHeight,
+      nivel: (document.getElementById('sf-experience') as HTMLSelectElement)?.value || 'INICIANTE',
+      objetivo: (document.getElementById('sf-goal') as HTMLSelectElement)?.value || 'EMAGRECIMENTO',
+      lesoes: (document.getElementById('sf-injuries') as HTMLTextAreaElement)?.value?.trim() || '',
+      rotina: (document.getElementById('sf-routine') as HTMLTextAreaElement)?.value?.trim() || '',
       termo_aceite_lgpd: lgpdConsent,
       data_aceite_lgpd: new Date().toISOString()
     };
@@ -2233,14 +2402,24 @@ function setupModals() {
       students.push(newStudent);
     }
 
-    await neonService.savePaciente(newStudent);
+    selectedStudentId = newStudent.id;
+    saveStoredStudents(students);
+
+    try {
+      await neonService.savePaciente(newStudent);
+    } catch (err) {
+      console.warn('Erro ao salvar no Neon:', err);
+    }
 
     modalStudent?.classList.remove('open');
     renderDashboard();
     renderStudentsList();
+    setupEvaluationTab();
+    setupAIStudio();
+    renderStudentPhonePreview();
     setupPlanilhasTab();
     setupLGPDTab();
-    showToast('Aluno salvo e sincronizado com o banco Neon!', 'success');
+    showToast(`Aluno "${name}" salvo e sincronizado com sucesso!`, 'success');
   });
 
   // Planilha modal
@@ -2280,6 +2459,7 @@ function setupModals() {
     }
 
     await neonService.savePlanilha(newPlanilha);
+    saveStoredPlanilhas(planilhas);
     modalPlanilha?.classList.remove('open');
     setupPlanilhasTab();
     showToast(`Planilha "${newPlanilha.titulo}" salva na nuvem Neon!`, 'success');
@@ -2404,17 +2584,31 @@ function openStudentModal(student?: any) {
     (document.getElementById('sf-email') as HTMLInputElement).value = student.email || '';
     (document.getElementById('sf-phone') as HTMLInputElement).value = student.telefone || '';
     (document.getElementById('sf-gender') as HTMLSelectElement).value = student.sexo || 'M';
-    (document.getElementById('sf-age') as HTMLInputElement).value = String(student.idade || 28);
-    (document.getElementById('sf-weight') as HTMLInputElement).value = String(student.peso || 70);
-    (document.getElementById('sf-height') as HTMLInputElement).value = String(student.altura || 170);
-    (document.getElementById('sf-experience') as HTMLSelectElement).value = student.nivel || 'INTERMEDIARIO';
-    (document.getElementById('sf-goal') as HTMLSelectElement).value = student.objetivo || 'HIPERTROFIA';
+    (document.getElementById('sf-age') as HTMLInputElement).value = String(student.idade || '');
+    (document.getElementById('sf-weight') as HTMLInputElement).value = String(student.peso || '');
+    (document.getElementById('sf-height') as HTMLInputElement).value = String(student.altura || '');
+    (document.getElementById('sf-experience') as HTMLSelectElement).value = student.nivel || 'INICIANTE';
+    (document.getElementById('sf-goal') as HTMLSelectElement).value = student.objetivo || 'EMAGRECIMENTO';
     (document.getElementById('sf-injuries') as HTMLTextAreaElement).value = student.lesoes || '';
     (document.getElementById('sf-routine') as HTMLTextAreaElement).value = student.rotina || '';
   } else {
     if (title) title.textContent = 'Novo Aluno — Cadastro & Anamnese';
     (document.getElementById('form-student-save') as HTMLFormElement)?.reset();
     (document.getElementById('student-form-id') as HTMLInputElement).value = '';
+    const nameEl = document.getElementById('sf-name') as HTMLInputElement;
+    if (nameEl) nameEl.value = '';
+    const emailEl = document.getElementById('sf-email') as HTMLInputElement;
+    if (emailEl) emailEl.value = '';
+    const phoneEl = document.getElementById('sf-phone') as HTMLInputElement;
+    if (phoneEl) phoneEl.value = '';
+    const ageEl = document.getElementById('sf-age') as HTMLInputElement;
+    if (ageEl) ageEl.value = '';
+    const weightEl = document.getElementById('sf-weight') as HTMLInputElement;
+    if (weightEl) weightEl.value = '';
+    const heightEl = document.getElementById('sf-height') as HTMLInputElement;
+    if (heightEl) heightEl.value = '';
+    const routineEl = document.getElementById('sf-routine') as HTMLTextAreaElement;
+    if (routineEl) routineEl.value = '';
   }
   modal?.classList.add('open');
 }
