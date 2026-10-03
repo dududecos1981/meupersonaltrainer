@@ -3,7 +3,7 @@
  * Plataforma Inteligente para Personal Trainer & Nutrição
  */
 
-import { Paciente, Exercicio, AvaliacaoFisica, PlanilhaMetrica, LogAuditoriaLGPD } from './types/database';
+import { Paciente, Exercicio, AvaliacaoFisica, PlanilhaMetrica, LogAuditoriaLGPD, AgendamentoAula, StudentAuthSession } from './types/database';
 import { WorkoutPlanOutput, NutritionPlanOutput } from './types/ai';
 import { authService, AuthUserSession } from './services/authService';
 import { neonService } from './services/neonService';
@@ -29,6 +29,86 @@ export type StudentRecord = Paciente & {
 
 const STORAGE_STUDENTS_KEY = 'balbino_students_list_v2';
 const STORAGE_PLANILHAS_KEY = 'balbino_planilhas_list_v2';
+const STORAGE_AGENDAMENTOS_KEY = 'balbino_agendamentos_list_v2';
+
+const DEFAULT_INITIAL_AGENDAMENTOS: AgendamentoAula[] = [
+  {
+    id: 'ag-eduardo-01',
+    personal_id: '11111111-1111-1111-1111-111111111111',
+    paciente_id: '44444444-4444-4444-4444-444444444401',
+    nome_aluno: 'Eduardo',
+    telefone_aluno: '(11) 98888-1111',
+    data_aula: '2026-10-06',
+    horario: '07:00',
+    tipo: 'PRESENCIAL',
+    status: 'CONFIRMADO',
+    observacoes: 'Foco no Treino A (Peitoral e Tríceps com progressão de cargas)',
+    created_at: '2026-10-01T10:00:00.000Z',
+    updated_at: '2026-10-01T10:00:00.000Z'
+  },
+  {
+    id: 'ag-arthur-01',
+    personal_id: '11111111-1111-1111-1111-111111111111',
+    paciente_id: '44444444-4444-4444-4444-444444444402',
+    nome_aluno: 'Arthur',
+    telefone_aluno: '(11) 99999-2222',
+    data_aula: '2026-10-07',
+    horario: '18:00',
+    tipo: 'PRESENCIAL',
+    status: 'SOLICITADO',
+    observacoes: 'Solicitação de treino funcional e revisão de técnica de agachamento',
+    created_at: '2026-10-02T14:30:00.000Z',
+    updated_at: '2026-10-02T14:30:00.000Z'
+  }
+];
+
+function loadStoredAgendamentos(): AgendamentoAula[] {
+  const result: AgendamentoAula[] = [];
+  const seenIds = new Set<string>();
+
+  const keysToInspect = [
+    STORAGE_AGENDAMENTOS_KEY,
+    'balbino_agendamentos_list',
+    'balbino_local_db_cache_v2_agendamentos'
+  ];
+
+  for (const k of keysToInspect) {
+    try {
+      const raw = localStorage.getItem(k);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          for (const item of parsed) {
+            if (item && item.id && !seenIds.has(item.id)) {
+              seenIds.add(item.id);
+              result.push(item);
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+
+  for (const def of DEFAULT_INITIAL_AGENDAMENTOS) {
+    if (!seenIds.has(def.id)) {
+      seenIds.add(def.id);
+      result.push(def);
+    }
+  }
+
+  return result;
+}
+
+function saveStoredAgendamentos(list: AgendamentoAula[]) {
+  try {
+    const json = JSON.stringify(list);
+    localStorage.setItem(STORAGE_AGENDAMENTOS_KEY, json);
+    localStorage.setItem('balbino_agendamentos_list', json);
+    localStorage.setItem('balbino_local_db_cache_v2_agendamentos', json);
+  } catch (e) {
+    console.warn('Erro ao salvar agendamentos no cache local:', e);
+  }
+}
 
 const DEFAULT_INITIAL_STUDENTS: StudentRecord[] = [
   {
@@ -263,6 +343,7 @@ const INITIAL_EXERCISES: Exercicio[] = [
 // Current State
 let students: StudentRecord[] = loadStoredStudents();
 let planilhas: PlanilhaMetrica[] = loadStoredPlanilhas();
+let agendamentos: AgendamentoAula[] = loadStoredAgendamentos();
 let exercises: Exercicio[] = [...INITIAL_EXERCISES];
 let selectedStudentId: string = students.length > 0 ? students[0].id : '';
 let isApproved = false;
@@ -374,9 +455,12 @@ let currentDietPlan: NutritionPlanOutput = {
 // ==============================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
+  setupStudentPortal();
   setupAuth();
   setupNavigation();
   setupModals();
+  setupAgendamentosTab();
+  setupInviteLinks();
   renderDashboard();
   renderStudentsList();
   renderExercisesList();
@@ -438,6 +522,24 @@ async function syncFromNeonCloud() {
       renderStudentPhonePreview();
       setupPlanilhasTab();
       setupLGPDTab();
+    }
+
+    const cloudAgendamentos = await neonService.getAgendamentos('personal-balbino');
+    if (cloudAgendamentos && cloudAgendamentos.length > 0) {
+      const mergedAg = [...agendamentos];
+      for (const ca of cloudAgendamentos) {
+        if (!ca || !ca.id) continue;
+        const idx = mergedAg.findIndex(a => a.id === ca.id);
+        if (idx >= 0) {
+          mergedAg[idx] = { ...mergedAg[idx], ...ca };
+        } else {
+          mergedAg.push(ca);
+        }
+      }
+      agendamentos = mergedAg;
+      saveStoredAgendamentos(agendamentos);
+      updateAgendamentosCounters();
+      renderAgendamentosList();
     }
   } catch (err) {
     console.warn('Sync inicial do Neon:', err);
@@ -927,6 +1029,7 @@ function setupNavigation() {
   const tabTitles: Record<string, { title: string; subtitle: string }> = {
     'dashboard': { title: 'Dashboard Geral', subtitle: 'Acompanhamento de alunos, prescrições ativas e co-piloto de IA' },
     'alunos': { title: 'Gestão de Alunos', subtitle: 'Cadastro completo de perfil, anamnese, rotina e métricas físicas' },
+    'agendamentos': { title: 'Agendamentos de Aulas', subtitle: 'Solicitações de treinos e aulas pelos alunos pelo celular' },
     'avaliacoes': { title: 'Avaliação Física & Antropometria', subtitle: 'Cálculo de IMC, TMB, GET, 7 dobras cutâneas e circunferências' },
     'exercicios': { title: 'Biblioteca de Exercícios', subtitle: 'Catálogo de exercícios com orientações biomecânicas e filtros' },
     'gerador-ia': { title: 'Gerador de Prescrições com IA', subtitle: 'Co-piloto inteligente para prescrição de treinos e planos alimentares' },
@@ -2252,14 +2355,16 @@ function setupLGPDTab() {
 
     tbodyLogs.innerHTML = logs
       .map((log) => {
-        const dateFormatted = new Date(log.timestamp).toLocaleString('pt-BR');
-        const badge = actionBadgeMap[log.acao] || { label: log.acao, class: 'auditoria' };
+        const rawTime = log.timestamp || log.created_at || new Date().toISOString();
+        const dateFormatted = new Date(rawTime).toLocaleString('pt-BR');
+        const acaoKey = log.acao || log.tipo_acao || 'CONSULTA';
+        const badge = actionBadgeMap[acaoKey] || { label: acaoKey, class: 'auditoria' };
         return `
         <tr>
           <td><span class="font-mono text-xs">${dateFormatted}</span></td>
           <td><span class="text-xs"><strong>Personal Balbino</strong></span></td>
           <td><span class="lgpd-badge-tag ${badge.class}">${badge.label}</span></td>
-          <td><span class="text-xs text-muted">${log.detalhe || 'Operação registrada'}</span></td>
+          <td><span class="text-xs text-muted">${log.detalhe || log.detalhes || 'Operação registrada'}</span></td>
         </tr>
       `;
       })
@@ -2733,6 +2838,70 @@ function setupModals() {
     setupNeonDatabaseHub();
     showToast('Configurações atualizadas com sucesso!', 'success');
   });
+
+  // Modal Agendamento (Personal Trainer)
+  const modalAgendamento = document.getElementById('modal-agendamento');
+  document.getElementById('btn-close-agendamento-modal')?.addEventListener('click', () => modalAgendamento?.classList.remove('open'));
+  document.getElementById('btn-cancel-agendamento')?.addEventListener('click', () => modalAgendamento?.classList.remove('open'));
+
+  document.getElementById('btn-save-agendamento-submit')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const formId = (document.getElementById('ag-form-id') as HTMLInputElement).value;
+    const studentId = (document.getElementById('ag-student-id') as HTMLSelectElement).value;
+    const student = students.find(s => s.id === studentId);
+    if (!studentId || !student) {
+      showToast('Selecione um aluno para agendar a aula.', 'error');
+      return;
+    }
+
+    const dateVal = (document.getElementById('ag-date') as HTMLInputElement).value;
+    const timeVal = (document.getElementById('ag-time') as HTMLSelectElement).value;
+    const typeVal = (document.getElementById('ag-type') as HTMLSelectElement).value as any;
+    const statusVal = (document.getElementById('ag-status') as HTMLSelectElement).value as any;
+    const notesVal = (document.getElementById('ag-notes') as HTMLTextAreaElement).value.trim();
+    const notifyWpp = (document.getElementById('ag-notify-whatsapp') as HTMLInputElement)?.checked;
+
+    if (!dateVal || !timeVal) {
+      showToast('Informe a data e o horário da aula.', 'error');
+      return;
+    }
+
+    const newAg: AgendamentoAula = {
+      id: formId || `ag-${Date.now()}`,
+      personal_id: student.personal_id || '11111111-1111-1111-1111-111111111111',
+      paciente_id: student.id,
+      nome_aluno: student.nome,
+      telefone_aluno: student.telefone || '',
+      data_aula: dateVal,
+      horario: timeVal,
+      tipo: typeVal || 'PRESENCIAL',
+      status: statusVal || 'CONFIRMADO',
+      observacoes: notesVal,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const existingIdx = agendamentos.findIndex(a => a.id === newAg.id);
+    if (existingIdx >= 0) {
+      agendamentos[existingIdx] = newAg;
+    } else {
+      agendamentos.unshift(newAg);
+    }
+
+    saveStoredAgendamentos(agendamentos);
+    await neonService.saveAgendamento(newAg);
+    modalAgendamento?.classList.remove('open');
+    updateAgendamentosCounters();
+    renderAgendamentosList();
+    showToast(`Agendamento de aula com ${student.nome} salvo com sucesso!`, 'success');
+
+    if (notifyWpp && student.telefone) {
+      const cleanPhone = student.telefone.replace(/\D/g, '');
+      const phone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+      const msg = `Olá ${student.nome}! Agendei sua aula para o dia ${dateVal} às ${timeVal} (${typeVal}). Aguardo você para o treino! 💪🏋️‍♂️`;
+      window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`, '_blank');
+    }
+  });
 }
 
 function openStudentModal(student?: any) {
@@ -2773,4 +2942,851 @@ function openStudentModal(student?: any) {
   }
   modal?.classList.add('open');
 }
+
+// ==============================================================================
+// 15. PORTAL DO ALUNO (MOBILE FIRST: CADASTRO, LOGIN, TREINOS & AGENDAMENTO)
+// ==============================================================================
+
+function setupStudentPortal() {
+  const portalContainer = document.getElementById('portal-aluno-container');
+  const viewRegister = document.getElementById('view-student-register');
+  const viewLogin = document.getElementById('view-student-login');
+  const viewApp = document.getElementById('view-student-app');
+
+  const btnSwitchToStudent = document.getElementById('btn-switch-to-student-portal');
+  const btnBackToTrainerLogin = document.getElementById('btn-back-to-trainer-login');
+  const btnBackToTrainerFromApp = document.getElementById('btn-back-to-trainer-from-app');
+  const linkStToLogin = document.getElementById('link-st-to-login');
+  const linkStToRegister = document.getElementById('link-st-to-register');
+  const btnStLogout = document.getElementById('btn-student-logout');
+
+  function showStudentView(view: 'register' | 'login' | 'app') {
+    if (!portalContainer) return;
+    portalContainer.classList.remove('hidden');
+
+    viewRegister?.classList.add('hidden');
+    viewLogin?.classList.add('hidden');
+    viewApp?.classList.add('hidden');
+
+    if (view === 'register') {
+      viewRegister?.classList.remove('hidden');
+    } else if (view === 'login') {
+      viewLogin?.classList.remove('hidden');
+    } else if (view === 'app') {
+      viewApp?.classList.remove('hidden');
+      renderStudentPortalApp();
+    }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function hideStudentPortal() {
+    portalContainer?.classList.add('hidden');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  btnSwitchToStudent?.addEventListener('click', () => {
+    const student = authService.getStudentSession();
+    if (student && student.id) {
+      showStudentView('app');
+    } else {
+      showStudentView('login');
+    }
+  });
+
+  btnBackToTrainerLogin?.addEventListener('click', () => hideStudentPortal());
+  btnBackToTrainerFromApp?.addEventListener('click', () => hideStudentPortal());
+
+  linkStToLogin?.addEventListener('click', () => showStudentView('login'));
+  linkStToRegister?.addEventListener('click', () => showStudentView('register'));
+
+  btnStLogout?.addEventListener('click', () => {
+    if (confirm('Deseja realmente sair da sua Área do Aluno?')) {
+      authService.studentSignOut();
+      showToast('Você saiu da sua conta de aluno.', 'info');
+      showStudentView('login');
+    }
+  });
+
+  // Password toggles
+  document.getElementById('btn-toggle-st-pwd')?.addEventListener('click', () => {
+    const pwdInput = document.getElementById('st-reg-password') as HTMLInputElement;
+    if (pwdInput) pwdInput.type = pwdInput.type === 'password' ? 'text' : 'password';
+  });
+  document.getElementById('btn-toggle-st-login-pwd')?.addEventListener('click', () => {
+    const pwdInput = document.getElementById('st-login-password') as HTMLInputElement;
+    if (pwdInput) pwdInput.type = pwdInput.type === 'password' ? 'text' : 'password';
+  });
+
+  // Submissão do Auto-Cadastro do Aluno
+  const formRegister = document.getElementById('form-student-self-register') as HTMLFormElement;
+  formRegister?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nome = (document.getElementById('st-reg-name') as HTMLInputElement).value.trim();
+    const email = (document.getElementById('st-reg-email') as HTMLInputElement).value.trim().toLowerCase();
+    const senha = (document.getElementById('st-reg-password') as HTMLInputElement).value;
+    const confirmSenha = (document.getElementById('st-reg-confirm-pwd') as HTMLInputElement).value;
+    const telefone = (document.getElementById('st-reg-phone') as HTMLInputElement).value.trim();
+    const idade = parseInt((document.getElementById('st-reg-age') as HTMLInputElement).value) || 25;
+    const rawPeso = (document.getElementById('st-reg-weight') as HTMLInputElement).value.replace(',', '.');
+    const peso = parseFloat(rawPeso) || 70;
+    const rawAltura = (document.getElementById('st-reg-height') as HTMLInputElement).value.replace(',', '.');
+    let altura = parseFloat(rawAltura) || 170;
+    if (altura < 3) altura = Math.round(altura * 100);
+    const sexo = (document.getElementById('st-reg-gender') as HTMLSelectElement).value || 'M';
+    const objetivo = (document.getElementById('st-reg-goal') as HTMLSelectElement).value || 'HIPERTROFIA';
+    const nivel = (document.getElementById('st-reg-experience') as HTMLSelectElement).value || 'INICIANTE';
+    const rotina = (document.getElementById('st-reg-routine') as HTMLTextAreaElement).value.trim();
+    const lesoes = (document.getElementById('st-reg-injuries') as HTMLTextAreaElement).value.trim();
+    const termoLgpd = (document.getElementById('st-reg-lgpd') as HTMLInputElement).checked;
+
+    if (!nome) return showToast('Preencha seu nome completo.', 'error');
+    if (!email || !email.includes('@')) return showToast('Informe um e-mail válido.', 'error');
+    if (senha.length < 6) return showToast('A senha deve ter pelo menos 6 caracteres.', 'error');
+    if (senha !== confirmSenha) return showToast('As senhas digitadas não conferem.', 'error');
+
+    const res = await authService.studentSignUp({
+      nome,
+      email,
+      senha,
+      telefone,
+      idade,
+      peso,
+      altura,
+      sexo,
+      objetivo,
+      nivel,
+      rotina,
+      lesoes,
+      termo_aceite_lgpd: termoLgpd
+    });
+
+    if (res.success && res.student) {
+      const st = res.student;
+      const studentRecord: StudentRecord = {
+        ...st,
+        idade: st.idade || 30,
+        peso: st.peso || 70,
+        altura: st.altura || 170,
+        objetivo: st.objetivo || 'HIPERTROFIA',
+        lesoes: st.lesoes || '',
+        rotina: st.rotina || '',
+        nivel: st.nivel || 'INICIANTE'
+      };
+      const existingIdx = students.findIndex(s => s.id === st.id || (s.email && s.email.toLowerCase() === email));
+      if (existingIdx >= 0) {
+        students[existingIdx] = studentRecord;
+      } else {
+        students.push(studentRecord);
+      }
+      saveStoredStudents(students);
+      try {
+        await neonService.savePaciente(studentRecord);
+      } catch {}
+
+      renderDashboard();
+      renderStudentsList();
+      showToast(`Bem-vindo(a), ${nome}! Seu cadastro foi concluído com sucesso.`, 'success');
+      showStudentView('app');
+    } else {
+      showToast(res.error || 'Erro ao realizar cadastro.', 'error');
+    }
+  });
+
+  // Submissão do Login do Aluno
+  const formLogin = document.getElementById('form-student-login') as HTMLFormElement;
+  formLogin?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = (document.getElementById('st-login-email') as HTMLInputElement).value.trim().toLowerCase();
+    const senha = (document.getElementById('st-login-password') as HTMLInputElement).value;
+
+    const res = await authService.studentSignIn(email, senha);
+    if (res.success && res.student) {
+      showToast(`Olá, ${res.student.nome}! Acesso liberado.`, 'success');
+      showStudentView('app');
+    } else {
+      showToast(res.error || 'E-mail ou senha incorretos.', 'error');
+    }
+  });
+
+  // Subtabs Treino vs Dieta
+  const btnSubtabWorkout = document.getElementById('btn-st-subtab-workout');
+  const btnSubtabDiet = document.getElementById('btn-st-subtab-diet');
+  const viewStWorkout = document.getElementById('st-workout-view');
+  const viewStDiet = document.getElementById('st-diet-view');
+
+  btnSubtabWorkout?.addEventListener('click', () => {
+    btnSubtabWorkout.classList.add('active');
+    btnSubtabDiet?.classList.remove('active');
+    viewStWorkout?.classList.remove('hidden');
+    viewStDiet?.classList.add('hidden');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  });
+
+  btnSubtabDiet?.addEventListener('click', () => {
+    btnSubtabDiet.classList.add('active');
+    btnSubtabWorkout?.classList.remove('active');
+    viewStDiet?.classList.remove('hidden');
+    viewStWorkout?.classList.add('hidden');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  });
+
+  // Tabs do App do Aluno (Prescrições, Agendamentos, Perfil)
+  const studentTabBtns = document.querySelectorAll<HTMLButtonElement>('.student-tab-btn');
+  const studentTabPanes = document.querySelectorAll<HTMLElement>('.student-tab-pane');
+
+  studentTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.getAttribute('data-st-tab');
+      if (!tab) return;
+      studentTabBtns.forEach(b => b.classList.remove('active'));
+      studentTabPanes.forEach(p => p.classList.add('hidden'));
+
+      btn.classList.add('active');
+      const targetPane = document.getElementById(`st-pane-${tab}`);
+      if (targetPane) targetPane.classList.remove('hidden');
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+  });
+
+  // Solicitar Agendamento de Aula
+  const formBook = document.getElementById('form-student-book-appointment') as HTMLFormElement;
+  formBook?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const student = authService.getStudentSession();
+    if (!student || !student.id) {
+      showToast('Sessão expirada. Faça login novamente.', 'error');
+      showStudentView('login');
+      return;
+    }
+
+    const dateVal = (document.getElementById('st-book-date') as HTMLInputElement).value;
+    const timeVal = (document.getElementById('st-book-time') as HTMLSelectElement).value;
+    const typeVal = (document.getElementById('st-book-type') as HTMLSelectElement).value as any;
+    const notesVal = (document.getElementById('st-book-notes') as HTMLTextAreaElement).value.trim();
+
+    if (!dateVal || !timeVal) {
+      showToast('Por favor, informe a data e o horário desejados.', 'error');
+      return;
+    }
+
+    const newAgendamento: AgendamentoAula = {
+      id: `ag-${Date.now()}`,
+      personal_id: student.personal_id || '11111111-1111-1111-1111-111111111111',
+      paciente_id: student.id,
+      nome_aluno: student.nome,
+      telefone_aluno: student.telefone || '',
+      data_aula: dateVal,
+      horario: timeVal,
+      tipo: typeVal || 'PRESENCIAL',
+      status: 'SOLICITADO',
+      observacoes: notesVal,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    agendamentos.unshift(newAgendamento);
+    saveStoredAgendamentos(agendamentos);
+    await neonService.saveAgendamento(newAgendamento);
+
+    formBook.reset();
+    renderStudentBookingsList(student.id);
+    updateAgendamentosCounters();
+    renderAgendamentosList();
+    showToast('Solicitação de agendamento enviada com sucesso ao seu Personal!', 'success');
+  });
+
+  // Edição de Perfil do Aluno
+  const formEditProfile = document.getElementById('form-student-edit-profile') as HTMLFormElement;
+  formEditProfile?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const student = authService.getStudentSession();
+    if (!student || !student.id) return;
+
+    const nome = (document.getElementById('st-prof-name') as HTMLInputElement).value.trim();
+    const telefone = (document.getElementById('st-prof-phone') as HTMLInputElement).value.trim();
+    const rawPeso = (document.getElementById('st-prof-weight') as HTMLInputElement).value.replace(',', '.');
+    const peso = parseFloat(rawPeso) || student.peso || 70;
+    const rawAltura = (document.getElementById('st-prof-height') as HTMLInputElement).value.replace(',', '.');
+    let altura = parseFloat(rawAltura) || student.altura || 170;
+    if (altura < 3) altura = Math.round(altura * 100);
+    const idade = parseInt((document.getElementById('st-prof-age') as HTMLInputElement).value) || student.idade || 30;
+    const objetivo = (document.getElementById('st-prof-goal') as HTMLSelectElement).value;
+    const nivel = (document.getElementById('st-prof-level') as HTMLSelectElement).value;
+    const rotina = (document.getElementById('st-prof-routine') as HTMLTextAreaElement).value.trim();
+    const lesoes = (document.getElementById('st-prof-injuries') as HTMLTextAreaElement).value.trim();
+
+    const res = await authService.updateStudentProfile({
+      nome,
+      telefone,
+      peso,
+      altura,
+      idade,
+      objetivo,
+      nivel,
+      rotina,
+      lesoes
+    });
+
+    if (res.success && res.student) {
+      const updated = res.student;
+      const studentRecord: StudentRecord = {
+        ...updated,
+        idade: updated.idade || 30,
+        peso: updated.peso || 70,
+        altura: updated.altura || 170,
+        objetivo: updated.objetivo || 'HIPERTROFIA',
+        lesoes: updated.lesoes || '',
+        rotina: updated.rotina || '',
+        nivel: updated.nivel || 'INICIANTE'
+      };
+      const idx = students.findIndex(s => s.id === updated.id);
+      if (idx >= 0) students[idx] = studentRecord;
+      else students.push(studentRecord);
+      saveStoredStudents(students);
+      try {
+        await neonService.savePaciente(studentRecord);
+      } catch {}
+      renderStudentPortalApp();
+      renderDashboard();
+      renderStudentsList();
+      showToast('Seu perfil foi atualizado com sucesso!', 'success');
+    }
+  });
+
+  // URL Auto-Routing
+  const searchParams = new URLSearchParams(window.location.search);
+  const portalParam = searchParams.get('portal');
+  const cadastroParam = searchParams.get('cadastro');
+
+  if (portalParam === 'cadastro' || cadastroParam === 'aluno' || cadastroParam === 'true') {
+    showStudentView('register');
+  } else if (portalParam === 'aluno' || portalParam === 'login') {
+    const student = authService.getStudentSession();
+    if (student && student.id) {
+      showStudentView('app');
+    } else {
+      showStudentView('login');
+    }
+  }
+}
+
+function renderStudentPortalApp() {
+  const student = authService.getStudentSession();
+  if (!student || !student.id) return;
+
+  // Header
+  const nameEl = document.getElementById('st-header-name');
+  const emailEl = document.getElementById('st-header-email');
+  const avatarEl = document.getElementById('st-header-avatar');
+  if (nameEl) nameEl.textContent = student.nome;
+  if (emailEl) emailEl.textContent = student.email || student.telefone || 'Aluno Ativo';
+  if (avatarEl) {
+    const initials = student.nome.split(' ').filter(Boolean).map((p: string) => p[0]).slice(0, 2).join('').toUpperCase() || 'AL';
+    avatarEl.textContent = initials;
+  }
+
+  // Preencher formulário de perfil
+  const pName = document.getElementById('st-prof-name') as HTMLInputElement;
+  const pEmail = document.getElementById('st-prof-email') as HTMLInputElement;
+  const pPhone = document.getElementById('st-prof-phone') as HTMLInputElement;
+  const pWeight = document.getElementById('st-prof-weight') as HTMLInputElement;
+  const pHeight = document.getElementById('st-prof-height') as HTMLInputElement;
+  const pAge = document.getElementById('st-prof-age') as HTMLInputElement;
+  const pGoal = document.getElementById('st-prof-goal') as HTMLSelectElement;
+  const pLevel = document.getElementById('st-prof-level') as HTMLSelectElement;
+  const pRoutine = document.getElementById('st-prof-routine') as HTMLTextAreaElement;
+  const pInjuries = document.getElementById('st-prof-injuries') as HTMLTextAreaElement;
+
+  if (pName) pName.value = student.nome;
+  if (pEmail) pEmail.value = student.email || '';
+  if (pPhone) pPhone.value = student.telefone || '';
+  if (pWeight) pWeight.value = String(student.peso || '');
+  if (pHeight) pHeight.value = String(student.altura || '');
+  if (pAge) pAge.value = String(student.idade || '');
+  if (pGoal && student.objetivo) pGoal.value = student.objetivo;
+  if (pLevel && student.nivel) pLevel.value = student.nivel;
+  if (pRoutine) pRoutine.value = student.rotina || '';
+  if (pInjuries) pInjuries.value = student.lesoes || '';
+
+  // Render Treino
+  const workoutHeader = document.getElementById('st-workout-header');
+  const workoutDivisions = document.getElementById('st-workout-divisions-container');
+
+  if (workoutHeader) {
+    workoutHeader.innerHTML = `
+      <div class="d-flex justify-between align-center flex-wrap gap-2">
+        <div>
+          <h3 class="mb-1" style="color: #fff; font-size: 1.15rem;">${currentWorkoutPlan.titulo}</h3>
+          <p class="text-xs text-muted mb-0">${currentWorkoutPlan.objetivo}</p>
+        </div>
+        <span class="badge-accent">${currentWorkoutPlan.frequencia_semanal}x por semana</span>
+      </div>
+    `;
+  }
+
+  if (workoutDivisions) {
+    workoutDivisions.innerHTML = currentWorkoutPlan.divisoes.map(div => `
+      <div class="st-workout-division-box">
+        <div class="st-division-title">
+          <div class="d-flex align-center gap-2">
+            <span class="badge" style="background: var(--accent-primary); color: #fff; font-weight: 800;">Treino ${div.letra}</span>
+            <strong style="color: #fff; font-size: 0.95rem;">${div.nome}</strong>
+          </div>
+          <span class="text-xs text-muted">${div.exercicios.length} exercícios</span>
+        </div>
+        <div class="st-exercises-list">
+          ${div.exercicios.map((ex, idx) => `
+            <div class="st-exercise-item">
+              <div>
+                <div class="st-exercise-name">${idx + 1}. ${ex.nome}</div>
+                <div class="st-exercise-meta">
+                  <span><strong>${ex.series}</strong> séries × <strong>${ex.repeticoes}</strong></span>
+                  <span>Descanso: ${ex.tempo_descanso}</span>
+                </div>
+                ${ex.observacao ? `<div class="text-xs text-muted mt-1" style="font-style: italic;">Obs: ${ex.observacao}</div>` : ''}
+              </div>
+              <div class="badge-accent-subtle" style="font-size: 0.7rem;">${ex.grupo_muscular}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Render Dieta
+  const dietHeader = document.getElementById('st-diet-header');
+  const dietMeals = document.getElementById('st-diet-meals-container');
+
+  if (dietHeader) {
+    dietHeader.innerHTML = `
+      <div class="d-flex justify-between align-center flex-wrap gap-2">
+        <div>
+          <h3 class="mb-1" style="color: #fff; font-size: 1.15rem;">Plano Alimentar &amp; Nutrição Esportiva</h3>
+          <p class="text-xs text-muted mb-0">Meta Diária: <strong>${currentDietPlan.meta_calorica} kcal</strong></p>
+        </div>
+        <div class="d-flex gap-2">
+          <span class="badge" style="background: rgba(99, 102, 241, 0.2); color: #a5b4fc;">P: ${currentDietPlan.macronutrientes.proteina_g}g</span>
+          <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">C: ${currentDietPlan.macronutrientes.carboidrato_g}g</span>
+          <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">G: ${currentDietPlan.macronutrientes.gordura_g}g</span>
+        </div>
+      </div>
+    `;
+  }
+
+  if (dietMeals) {
+    dietMeals.innerHTML = currentDietPlan.refeicoes.map(m => `
+      <div class="st-meal-box">
+        <div class="st-meal-header">
+          <div class="d-flex align-center gap-2">
+            <span class="badge" style="background: rgba(16, 185, 129, 0.25); color: #34d399;">${m.horario}</span>
+            <strong style="color: #fff; font-size: 0.92rem;">${m.nome}</strong>
+          </div>
+          <span class="text-xs text-muted">${m.itens.reduce((acc, i) => acc + (i.calorias || 0), 0)} kcal</span>
+        </div>
+        <div class="st-meal-foods">
+          ${m.itens.map(it => `
+            <div class="st-meal-food-row">
+              <span>${it.alimento}</span>
+              <div class="d-flex gap-2 text-muted">
+                <span>${it.quantidade}</span>
+                ${it.calorias ? `<strong>(${it.calorias} kcal)</strong>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Render Agendamentos do Aluno
+  renderStudentBookingsList(student.id);
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function renderStudentBookingsList(studentId: string) {
+  const container = document.getElementById('st-bookings-list-container');
+  if (!container) return;
+
+  const student = authService.getStudentSession();
+  const studentName = student?.nome || '';
+
+  const studentBookings = agendamentos.filter(
+    a => a.paciente_id === studentId || (studentName && a.nome_aluno && a.nome_aluno.toLowerCase() === studentName.toLowerCase())
+  );
+
+  if (studentBookings.length === 0) {
+    container.innerHTML = `
+      <div class="text-center p-4 text-muted" style="background: rgba(255,255,255,0.02); border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+        <i data-lucide="calendar" style="width: 36px; height: 36px; margin: 0 auto 8px auto; opacity: 0.5;"></i>
+        <p class="mb-1">Você ainda não possui aulas agendadas.</p>
+        <span class="text-xs">Preencha o formulário acima para solicitar um novo horário com seu Personal Trainer.</span>
+      </div>
+    `;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    return;
+  }
+
+  const months = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+
+  container.innerHTML = studentBookings.map(b => {
+    const parts = (b.data_aula || '').split('-');
+    const day = parts.length === 3 ? parts[2] : '01';
+    const monthIdx = parts.length === 3 ? parseInt(parts[1], 10) - 1 : 0;
+    const month = months[monthIdx] || 'MES';
+
+    let statusBadge = `<span class="badge-status-solicitado"><i data-lucide="clock"></i> Solicitado (Aguardando)</span>`;
+    if (b.status === 'CONFIRMADO') {
+      statusBadge = `<span class="badge-status-confirmado"><i data-lucide="check"></i> Confirmado</span>`;
+    } else if (b.status === 'CONCLUIDO') {
+      statusBadge = `<span class="badge-status-concluido"><i data-lucide="check-circle-2"></i> Realizado</span>`;
+    } else if (b.status === 'RECUSADO') {
+      statusBadge = `<span class="badge-status-recusado"><i data-lucide="x-circle"></i> Cancelado / Reagendar</span>`;
+    }
+
+    const typeLabel = b.tipo === 'PRESENCIAL' ? 'Treino Presencial' :
+                     b.tipo === 'AVALIACAO' ? 'Avaliação Física' :
+                     b.tipo === 'ONLINE' ? 'Consultoria Online' : 'Treino Personalizado';
+
+    return `
+      <div class="st-booking-item">
+        <div class="d-flex align-center gap-3">
+          <div class="st-booking-date-badge">
+            <span class="day">${day}</span>
+            <span class="month">${month}</span>
+          </div>
+          <div class="st-booking-info">
+            <div class="st-booking-title">${typeLabel}</div>
+            <div class="st-booking-time"><i data-lucide="clock" style="width: 13px; height: 13px; display: inline;"></i> ${b.horario} horas</div>
+            ${b.observacoes ? `<div class="st-booking-notes">"${b.observacoes}"</div>` : ''}
+          </div>
+        </div>
+        <div>
+          ${statusBadge}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// ==============================================================================
+// 16. LINKS DE CONVITE & COMPARTILHAMENTO (PERSONAL TRAINER)
+// ==============================================================================
+
+function getStudentInviteUrl(): string {
+  if (typeof window === 'undefined') return 'https://meupersonaltrainer.app/?portal=cadastro';
+  const base = window.location.origin + window.location.pathname.replace(/\/index\.html$/, '');
+  const url = base.endsWith('/') ? `${base}?portal=cadastro` : `${base}/?portal=cadastro`;
+  return url;
+}
+
+function setupInviteLinks() {
+  const inviteUrl = getStudentInviteUrl();
+  const displayUrlEl = document.getElementById('display-invite-url');
+  if (displayUrlEl) displayUrlEl.textContent = inviteUrl;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(inviteUrl).then(() => {
+      showToast('Link de cadastro copiado para a área de transferência!', 'success');
+    }).catch(() => {
+      prompt('Copie o link abaixo para enviar ao seu aluno:', inviteUrl);
+    });
+  };
+
+  const handleShareWhatsapp = () => {
+    const personal = authService.getCurrentPersonal();
+    const trainerName = personal?.nome || 'Seu Personal Trainer';
+    const msg = `Olá! Aqui é o ${trainerName}. Acesse o link abaixo para fazer seu cadastro completo, criar seu login de acesso, visualizar seus treinos e solicitar agendamentos de aulas:\n\n${inviteUrl}`;
+    const wppUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(wppUrl, '_blank');
+  };
+
+  document.getElementById('btn-copy-invite-link')?.addEventListener('click', handleCopyLink);
+  document.getElementById('btn-whatsapp-invite-link')?.addEventListener('click', handleShareWhatsapp);
+  document.getElementById('btn-share-student-invite-tab')?.addEventListener('click', handleShareWhatsapp);
+  document.getElementById('btn-share-invite-from-agenda')?.addEventListener('click', handleShareWhatsapp);
+}
+
+// ==============================================================================
+// 17. GESTÃO DE AGENDAMENTOS (PERSONAL TRAINER DASHBOARD & TAB)
+// ==============================================================================
+
+function updateAgendamentosCounters() {
+  const solicitados = agendamentos.filter(a => a.status === 'SOLICITADO').length;
+  const confirmados = agendamentos.filter(a => a.status === 'CONFIRMADO').length;
+  const concluidos = agendamentos.filter(a => a.status === 'CONCLUIDO').length;
+  const total = agendamentos.length;
+
+  const countPendente = document.getElementById('agendamentos-count-pendente');
+  const countConfirmado = document.getElementById('agendamentos-count-confirmado');
+  const countConcluido = document.getElementById('agendamentos-count-concluido');
+  const countTotal = document.getElementById('agendamentos-count-total');
+  const badgeCount = document.getElementById('badge-agendamentos-count');
+
+  if (countPendente) countPendente.textContent = String(solicitados);
+  if (countConfirmado) countConfirmado.textContent = String(confirmados);
+  if (countConcluido) countConcluido.textContent = String(concluidos);
+  if (countTotal) countTotal.textContent = String(total);
+  if (badgeCount) {
+    badgeCount.textContent = String(solicitados);
+    badgeCount.style.display = solicitados > 0 ? 'inline-flex' : 'none';
+  }
+}
+
+function renderAgendamentosList() {
+  const container = document.getElementById('agendamentos-list-container');
+  if (!container) return;
+
+  const statusFilter = (document.getElementById('filter-agendamento-status') as HTMLSelectElement)?.value || 'ALL';
+  const studentFilter = (document.getElementById('filter-agendamento-aluno') as HTMLSelectElement)?.value || 'ALL';
+
+  let filtered = [...agendamentos];
+  if (statusFilter !== 'ALL') {
+    filtered = filtered.filter(a => a.status === statusFilter);
+  }
+  if (studentFilter !== 'ALL') {
+    filtered = filtered.filter(a => a.paciente_id === studentFilter || a.nome_aluno === studentFilter);
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="text-center p-4 text-muted" style="background: rgba(255,255,255,0.02); border-radius: var(--radius-md);">
+        <i data-lucide="calendar-x" style="width: 40px; height: 40px; margin: 0 auto 8px auto; opacity: 0.5;"></i>
+        <p class="mb-1">Nenhum agendamento encontrado com os filtros selecionados.</p>
+        <span class="text-xs">Os novos agendamentos solicitados pelos alunos pelo celular aparecerão aqui automaticamente.</span>
+      </div>
+    `;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    return;
+  }
+
+  const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+  container.innerHTML = filtered.map(ag => {
+    const parts = (ag.data_aula || '').split('-');
+    const day = parts.length === 3 ? parts[2] : '01';
+    const monthIdx = parts.length === 3 ? parseInt(parts[1], 10) - 1 : 0;
+    const dateFormatted = `${day} de ${months[monthIdx] || 'Mês'} de ${parts[0] || '2026'}`;
+
+    let statusBadge = `<span class="badge-status-solicitado"><i data-lucide="clock"></i> Solicitado</span>`;
+    let rowBorderClass = 'status-solicitado';
+
+    if (ag.status === 'CONFIRMADO') {
+      statusBadge = `<span class="badge-status-confirmado"><i data-lucide="check"></i> Confirmado</span>`;
+      rowBorderClass = 'status-confirmado';
+    } else if (ag.status === 'CONCLUIDO') {
+      statusBadge = `<span class="badge-status-concluido"><i data-lucide="check-circle-2"></i> Concluído</span>`;
+      rowBorderClass = 'status-concluido';
+    } else if (ag.status === 'RECUSADO') {
+      statusBadge = `<span class="badge-status-recusado"><i data-lucide="x-circle"></i> Recusado</span>`;
+      rowBorderClass = 'status-recusado';
+    }
+
+    const initials = (ag.nome_aluno || 'AL').split(' ').filter(Boolean).map((p: string) => p[0]).slice(0, 2).join('').toUpperCase();
+
+    const typeLabel = ag.tipo === 'PRESENCIAL' ? 'Treino Presencial' :
+                     ag.tipo === 'AVALIACAO' ? 'Avaliação Física' :
+                     ag.tipo === 'ONLINE' ? 'Consultoria Online' : 'Treino Personalizado';
+
+    return `
+      <div class="agendamento-card-row ${rowBorderClass}" data-ag-id="${ag.id}">
+        <div class="agendamento-main-col">
+          <div class="avatar-circle" style="background: rgba(99, 102, 241, 0.2); color: #c7d2fe; font-weight: 700; width: 44px; height: 44px; font-size: 0.9rem;">
+            ${initials}
+          </div>
+          <div>
+            <div class="d-flex align-center gap-2 flex-wrap mb-1">
+              <strong style="color: #fff; font-size: 0.98rem;">${ag.nome_aluno}</strong>
+              ${statusBadge}
+            </div>
+            <div class="text-xs text-muted d-flex align-center gap-3 flex-wrap">
+              <span><i data-lucide="calendar" style="width: 13px; height: 13px; display: inline;"></i> ${dateFormatted}</span>
+              <span><i data-lucide="clock" style="width: 13px; height: 13px; display: inline;"></i> <strong>${ag.horario}</strong></span>
+              <span class="badge-accent-subtle" style="font-size: 0.7rem;">${typeLabel}</span>
+              ${ag.telefone_aluno ? `<span><i data-lucide="phone" style="width: 13px; height: 13px; display: inline;"></i> ${ag.telefone_aluno}</span>` : ''}
+            </div>
+            ${ag.observacoes ? `<div class="text-xs mt-2 text-muted" style="font-style: italic; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: 4px;">Obs do Aluno: "${ag.observacoes}"</div>` : ''}
+          </div>
+        </div>
+
+        <div class="agendamento-actions-col">
+          ${ag.status === 'SOLICITADO' ? `
+            <button class="btn-success btn-sm btn-action-confirm-ag" data-id="${ag.id}" title="Confirmar agendamento e notificar aluno">
+              <i data-lucide="check"></i> Confirmar
+            </button>
+          ` : ''}
+          ${ag.status === 'CONFIRMADO' ? `
+            <button class="btn-primary btn-sm btn-action-complete-ag" data-id="${ag.id}" title="Marcar treino como realizado">
+              <i data-lucide="check-circle-2"></i> Concluir
+            </button>
+          ` : ''}
+          ${ag.telefone_aluno ? `
+            <button class="btn-whatsapp btn-sm btn-action-wpp-ag" data-id="${ag.id}" title="Abrir conversa no WhatsApp com o aluno">
+              <i data-lucide="message-square"></i> WhatsApp
+            </button>
+          ` : ''}
+          <button class="btn-icon-ghost btn-sm btn-action-edit-ag" data-id="${ag.id}" title="Editar agendamento">
+            <i data-lucide="edit"></i>
+          </button>
+          <button class="btn-icon-ghost text-danger btn-sm btn-action-del-ag" data-id="${ag.id}" title="Excluir agendamento">
+            <i data-lucide="trash-2"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Event Listeners for action buttons
+  container.querySelectorAll<HTMLButtonElement>('.btn-action-confirm-ag').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      const ag = agendamentos.find(a => a.id === id);
+      if (!ag) return;
+      ag.status = 'CONFIRMADO';
+      ag.updated_at = new Date().toISOString();
+      saveStoredAgendamentos(agendamentos);
+      await neonService.updateAgendamentoStatus(ag.id, 'CONFIRMADO');
+      updateAgendamentosCounters();
+      renderAgendamentosList();
+      showToast(`Agendamento de ${ag.nome_aluno} confirmado!`, 'success');
+
+      if (ag.telefone_aluno && confirm(`Deseja abrir o WhatsApp para avisar ${ag.nome_aluno} sobre a confirmação da aula?`)) {
+        const cleanPhone = ag.telefone_aluno.replace(/\D/g, '');
+        const phone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+        const msg = `Olá ${ag.nome_aluno}! Seu agendamento de aula para o dia ${ag.data_aula} às ${ag.horario} foi CONFIRMADO com sucesso. Nos vemos no treino! 💪🏋️‍♂️`;
+        window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`, '_blank');
+      }
+    });
+  });
+
+  container.querySelectorAll<HTMLButtonElement>('.btn-action-complete-ag').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      const ag = agendamentos.find(a => a.id === id);
+      if (!ag) return;
+      ag.status = 'CONCLUIDO';
+      ag.updated_at = new Date().toISOString();
+      saveStoredAgendamentos(agendamentos);
+      await neonService.updateAgendamentoStatus(ag.id, 'CONCLUIDO');
+      updateAgendamentosCounters();
+      renderAgendamentosList();
+      showToast(`Aula com ${ag.nome_aluno} concluída e registrada!`, 'success');
+    });
+  });
+
+  container.querySelectorAll<HTMLButtonElement>('.btn-action-wpp-ag').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      const ag = agendamentos.find(a => a.id === id);
+      if (!ag || !ag.telefone_aluno) return;
+      const cleanPhone = ag.telefone_aluno.replace(/\D/g, '');
+      const phone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+      const msg = `Olá ${ag.nome_aluno}! Sobre nosso agendamento de aula em ${ag.data_aula} às ${ag.horario}...`;
+      window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`, '_blank');
+    });
+  });
+
+  container.querySelectorAll<HTMLButtonElement>('.btn-action-edit-ag').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      const ag = agendamentos.find(a => a.id === id);
+      if (ag) openAgendamentoModal(ag);
+    });
+  });
+
+  container.querySelectorAll<HTMLButtonElement>('.btn-action-del-ag').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      if (!id) return;
+      if (confirm('Deseja realmente remover este agendamento?')) {
+        agendamentos = agendamentos.filter(a => a.id !== id);
+        saveStoredAgendamentos(agendamentos);
+        await neonService.deleteAgendamento(id);
+        updateAgendamentosCounters();
+        renderAgendamentosList();
+        showToast('Agendamento excluído.', 'info');
+      }
+    });
+  });
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function setupAgendamentosTab() {
+  const statusFilter = document.getElementById('filter-agendamento-status') as HTMLSelectElement;
+  const studentFilter = document.getElementById('filter-agendamento-aluno') as HTMLSelectElement;
+  const btnRefresh = document.getElementById('btn-refresh-agendamentos');
+  const btnOpenModal = document.getElementById('btn-open-new-agendamento-modal');
+
+  // Populate student filter
+  if (studentFilter) {
+    const currentVal = studentFilter.value;
+    studentFilter.innerHTML = `<option value="ALL">Todos os Alunos</option>` + students.map(
+      s => `<option value="${s.id}">${s.nome}</option>`
+    ).join('');
+    studentFilter.value = currentVal || 'ALL';
+  }
+
+  statusFilter?.addEventListener('change', () => renderAgendamentosList());
+  studentFilter?.addEventListener('change', () => renderAgendamentosList());
+
+  btnRefresh?.addEventListener('click', async () => {
+    showToast('Atualizando agendamentos com a nuvem Neon...', 'info');
+    try {
+      const cloud = await neonService.getAgendamentos('personal-balbino');
+      if (cloud && cloud.length > 0) {
+        agendamentos = cloud;
+        saveStoredAgendamentos(agendamentos);
+      }
+    } catch {}
+    updateAgendamentosCounters();
+    renderAgendamentosList();
+    showToast('Lista de agendamentos atualizada!', 'success');
+  });
+
+  btnOpenModal?.addEventListener('click', () => openAgendamentoModal());
+
+  updateAgendamentosCounters();
+  renderAgendamentosList();
+}
+
+function openAgendamentoModal(ag?: AgendamentoAula) {
+  const modal = document.getElementById('modal-agendamento');
+  const title = document.getElementById('agendamento-modal-title');
+  const studentSelect = document.getElementById('ag-student-id') as HTMLSelectElement;
+
+  if (studentSelect) {
+    studentSelect.innerHTML = `<option value="">Selecione o Aluno...</option>` + students.map(
+      s => `<option value="${s.id}">${s.nome} (${s.telefone || 'Sem telefone'})</option>`
+    ).join('');
+  }
+
+  if (ag) {
+    if (title) title.textContent = 'Editar Agendamento de Aula';
+    (document.getElementById('ag-form-id') as HTMLInputElement).value = ag.id;
+    if (studentSelect) studentSelect.value = ag.paciente_id || '';
+    (document.getElementById('ag-date') as HTMLInputElement).value = ag.data_aula;
+    (document.getElementById('ag-time') as HTMLSelectElement).value = ag.horario;
+    (document.getElementById('ag-type') as HTMLSelectElement).value = ag.tipo;
+    (document.getElementById('ag-status') as HTMLSelectElement).value = ag.status;
+    (document.getElementById('ag-notes') as HTMLTextAreaElement).value = ag.observacoes || '';
+  } else {
+    if (title) title.textContent = 'Novo Agendamento de Aula';
+    (document.getElementById('form-agendamento-save') as HTMLFormElement)?.reset();
+    (document.getElementById('ag-form-id') as HTMLInputElement).value = '';
+    const dateInput = document.getElementById('ag-date') as HTMLInputElement;
+    if (dateInput) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      dateInput.value = tomorrow.toISOString().split('T')[0];
+    }
+  }
+
+  modal?.classList.add('open');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
 

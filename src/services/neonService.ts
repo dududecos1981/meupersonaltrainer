@@ -16,7 +16,8 @@ import {
   PlanoAlimentar,
   PlanilhaMetrica,
   ConsentimentoLGPD,
-  LogAuditoriaLGPD
+  LogAuditoriaLGPD,
+  AgendamentoAula
 } from '../types/database';
 
 export const STORAGE_NEON_URL = 'balbino_neon_connection_string';
@@ -444,6 +445,137 @@ class NeonService {
       }
     }
     this.removeLocalItem('planilhas', planilhaId);
+    return true;
+  }
+
+  // ============================================================================
+  // GESTÃO DE AGENDAMENTOS DE AULAS & SOLICITAÇÕES
+  // ============================================================================
+
+  public async getAgendamentos(personalId: string, pacienteId?: string): Promise<AgendamentoAula[]> {
+    const safePersonalId = toSafeUUID(personalId);
+    if (this.isConfigured && this.sql) {
+      try {
+        let rows;
+        if (pacienteId) {
+          const safePacId = toSafeUUID(pacienteId);
+          rows = await this.sql`
+            SELECT id, personal_id, paciente_id, aluno_nome, aluno_telefone, data_hora, tipo_aula, status, observacoes, created_at, updated_at
+            FROM public.agendamentos
+            WHERE (personal_id = ${safePersonalId}::uuid OR personal_id IS NULL)
+              AND (paciente_id = ${safePacId}::uuid OR paciente_id IS NULL)
+            ORDER BY data_hora ASC
+          `;
+        } else {
+          rows = await this.sql`
+            SELECT id, personal_id, paciente_id, aluno_nome, aluno_telefone, data_hora, tipo_aula, status, observacoes, created_at, updated_at
+            FROM public.agendamentos
+            WHERE personal_id = ${safePersonalId}::uuid OR personal_id IS NULL
+            ORDER BY data_hora ASC
+          `;
+        }
+        return rows as AgendamentoAula[];
+      } catch (e) {
+        console.warn('[NeonService] Erro ao buscar agendamentos no Neon:', e);
+      }
+    }
+
+    const localList = this.getLocalList<AgendamentoAula>('agendamentos');
+    if (pacienteId) {
+      return localList.filter((a) => a.paciente_id === pacienteId);
+    }
+    return localList;
+  }
+
+  public async saveAgendamento(agendamento: AgendamentoAula): Promise<AgendamentoAula> {
+    const finalId = agendamento.id && agendamento.id.length > 5 ? agendamento.id : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'agd-' + Date.now());
+    const safeSqlId = toSafeUUID(finalId);
+    const safePersonalId = agendamento.personal_id ? toSafeUUID(agendamento.personal_id) : '11111111-1111-1111-1111-111111111111';
+    const safePacienteId = agendamento.paciente_id ? toSafeUUID(agendamento.paciente_id) : '44444444-4444-4444-4444-444444444401';
+    const now = new Date().toISOString();
+
+    const record: AgendamentoAula = {
+      ...agendamento,
+      id: finalId,
+      personal_id: safePersonalId,
+      paciente_id: safePacienteId,
+      created_at: agendamento.created_at || now,
+      updated_at: now
+    };
+
+    if (this.isConfigured && this.sql) {
+      try {
+        await this.sql`
+          INSERT INTO public.agendamentos (
+            id, personal_id, paciente_id, aluno_nome, aluno_telefone, data_hora, tipo_aula, status, observacoes, created_at, updated_at
+          ) VALUES (
+            ${safeSqlId}::uuid,
+            ${record.personal_id}::uuid,
+            ${record.paciente_id}::uuid,
+            ${record.aluno_nome},
+            ${record.aluno_telefone || null},
+            ${record.data_hora}::timestamptz,
+            ${record.tipo_aula},
+            ${record.status},
+            ${record.observacoes || null},
+            ${record.created_at}::timestamptz,
+            ${record.updated_at}::timestamptz
+          )
+          ON CONFLICT (id) DO UPDATE SET
+            data_hora = EXCLUDED.data_hora,
+            tipo_aula = EXCLUDED.tipo_aula,
+            status = EXCLUDED.status,
+            observacoes = EXCLUDED.observacoes,
+            updated_at = EXCLUDED.updated_at;
+        `;
+        await this.logAuditoria(record.personal_id, 'INSERCAO', `Agendamento de aula (${record.tipo_aula}) para ${record.aluno_nome}`);
+      } catch (e) {
+        console.warn('[NeonService] Erro ao salvar agendamento no Neon:', e);
+      }
+    }
+
+    this.saveLocalItem('agendamentos', record);
+    return record;
+  }
+
+  public async updateAgendamentoStatus(id: string, status: AgendamentoAula['status'], personalId: string = '11111111-1111-1111-1111-111111111111'): Promise<boolean> {
+    const safeId = toSafeUUID(id);
+    if (this.isConfigured && this.sql) {
+      try {
+        await this.sql`
+          UPDATE public.agendamentos
+          SET status = ${status}, updated_at = now()
+          WHERE id = ${safeId}::uuid OR id = ${id}::text
+        `;
+        await this.logAuditoria(personalId, 'EDICAO', `Status do agendamento ${id} alterado para ${status}`);
+      } catch (e) {
+        console.warn('[NeonService] Erro ao atualizar status no Neon:', e);
+      }
+    }
+
+    const list = this.getLocalList<AgendamentoAula>('agendamentos');
+    const idx = list.findIndex(a => a.id === id || a.id === safeId);
+    if (idx >= 0) {
+      list[idx].status = status;
+      list[idx].updated_at = new Date().toISOString();
+      this.saveLocalList('agendamentos', list);
+    }
+    return true;
+  }
+
+  public async deleteAgendamento(id: string, personalId: string = '11111111-1111-1111-1111-111111111111'): Promise<boolean> {
+    const safeId = toSafeUUID(id);
+    if (this.isConfigured && this.sql) {
+      try {
+        await this.sql`DELETE FROM public.agendamentos WHERE id = ${safeId}::uuid OR id = ${id}::text`;
+        await this.logAuditoria(personalId, 'CONSULTA', `Agendamento ${id} excluído`);
+      } catch (e) {
+        console.warn('[NeonService] Erro ao excluir agendamento:', e);
+      }
+    }
+
+    this.removeLocalItem('agendamentos', id);
+    this.removeLocalItem('agendamentos', safeId);
     return true;
   }
 

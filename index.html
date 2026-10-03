@@ -87,6 +87,13 @@
             <span>Novo por aqui?</span>
             <button type="button" class="btn-link-accent" id="link-to-register">Criar conta</button>
           </div>
+
+          <div class="auth-student-switch-box">
+            <button type="button" class="btn-secondary btn-block btn-student-portal-link" id="btn-switch-to-student-portal">
+              <i data-lucide="smartphone"></i>
+              <span>Área do Aluno (Entrar / Cadastrar)</span>
+            </button>
+          </div>
         </form>
 
         <!-- TELA DE CADASTRO -->
@@ -269,6 +276,405 @@
     </div>
   </div>
 
+  <!-- ============================================================================== -->
+  <!-- PORTAL DO ALUNO — AUTO-CADASTRO MOBILE, LOGIN & GESTÃO DO ALUNO -->
+  <!-- ============================================================================== -->
+  <div class="portal-aluno-wrapper hidden" id="portal-aluno-container">
+    <div class="portal-aluno-header-bar">
+      <div class="portal-brand">
+        <div class="portal-brand-icon">
+          <i data-lucide="dumbbell"></i>
+        </div>
+        <div>
+          <h2 class="portal-brand-name">BALBINO<span class="text-accent">PRO</span></h2>
+          <span class="portal-brand-badge">ÁREA EXCLUSIVA DO ALUNO</span>
+        </div>
+      </div>
+      <button type="button" class="btn-portal-switch" id="btn-switch-to-personal-portal" title="Acessar como Personal Trainer">
+        <i data-lucide="user-check"></i> <span>Sou Personal Trainer</span>
+      </button>
+    </div>
+
+    <!-- Alert Box do Aluno -->
+    <div class="portal-alert hidden" id="student-alert-box">
+      <i data-lucide="alert-circle" id="student-alert-icon"></i>
+      <span id="student-alert-msg">Mensagem</span>
+    </div>
+
+    <!-- SUBVIEW 1: PRIMEIRO CADASTRO DO ALUNO (MOBILE-FIRST) -->
+    <div class="portal-view-container" id="view-student-register">
+      <div class="portal-card">
+        <div class="portal-card-header">
+          <div class="portal-badge-icon"><i data-lucide="sparkles"></i></div>
+          <h3 class="portal-card-title">Primeiro Cadastro do Aluno</h3>
+          <p class="portal-card-subtitle">Cadastre-se na consultoria do Personal Balbino para receber treinos e dietas personalizados e solicitar agendamentos de aulas.</p>
+        </div>
+
+        <form class="portal-form" id="form-student-self-register">
+          <div class="form-section-title"><i data-lucide="key"></i> 1. Dados de Acesso (Criação do seu Login)</div>
+          
+          <div class="form-group mb-3">
+            <label class="form-label" for="st-reg-name">Nome Completo *</label>
+            <div class="input-icon-wrapper">
+              <i data-lucide="user" class="input-icon"></i>
+              <input type="text" class="form-control with-icon" id="st-reg-name" required placeholder="Ex: Arthur Cunha Silva" autocomplete="name">
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label" for="st-reg-email">E-mail (Seu Login de Acesso) *</label>
+            <div class="input-icon-wrapper">
+              <i data-lucide="mail" class="input-icon"></i>
+              <input type="email" class="form-control with-icon" id="st-reg-email" required placeholder="seu@email.com" autocomplete="email" autocapitalize="none">
+            </div>
+          </div>
+
+          <div class="form-row-2 mb-3">
+            <div class="form-group">
+              <label class="form-label" for="st-reg-password">Criar Senha *</label>
+              <div class="input-icon-wrapper">
+                <i data-lucide="lock" class="input-icon"></i>
+                <input type="password" class="form-control with-icon with-action" id="st-reg-password" required minlength="6" placeholder="Mínimo 6 dígitos">
+                <button type="button" class="btn-toggle-password" id="btn-toggle-st-pwd" title="Ver senha"><i data-lucide="eye"></i></button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="st-reg-confirm-password">Confirmar Senha *</label>
+              <div class="input-icon-wrapper">
+                <i data-lucide="shield-check" class="input-icon"></i>
+                <input type="password" class="form-control with-icon with-action" id="st-reg-confirm-password" required minlength="6" placeholder="Repita a senha">
+                <button type="button" class="btn-toggle-password" id="btn-toggle-st-confirm-pwd" title="Ver senha"><i data-lucide="eye"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section-title mt-4"><i data-lucide="activity"></i> 2. Perfil Físico &amp; Contato</div>
+
+          <div class="form-group mb-3">
+            <label class="form-label" for="st-reg-phone">WhatsApp / Celular com DDD *</label>
+            <div class="input-icon-wrapper">
+              <i data-lucide="phone" class="input-icon"></i>
+              <input type="tel" class="form-control with-icon" id="st-reg-phone" required placeholder="(11) 99999-9999" autocomplete="tel">
+            </div>
+          </div>
+
+          <div class="form-row-3 mb-3">
+            <div class="form-group">
+              <label class="form-label" for="st-reg-gender">Sexo</label>
+              <select class="form-select" id="st-reg-gender">
+                <option value="M">Masculino</option>
+                <option value="F">Feminino</option>
+                <option value="O">Outro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="st-reg-age">Idade</label>
+              <input type="number" class="form-control" id="st-reg-age" placeholder="Ex: 28" min="12" max="100" value="28">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="st-reg-weight">Peso (kg) *</label>
+              <input type="text" class="form-control" id="st-reg-weight" required placeholder="Ex: 75.5" value="75.0">
+            </div>
+          </div>
+
+          <div class="form-row-2 mb-3">
+            <div class="form-group">
+              <label class="form-label" for="st-reg-height">Altura (cm) *</label>
+              <input type="text" class="form-control" id="st-reg-height" required placeholder="Ex: 175" value="175">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="st-reg-goal">Objetivo Principal *</label>
+              <select class="form-select" id="st-reg-goal">
+                <option value="HIPERTROFIA">Hipertrofia &amp; Ganho de Massa</option>
+                <option value="EMAGRECIMENTO">Emagrecimento &amp; Definição</option>
+                <option value="CONDICIONAMENTO">Condicionamento Físico</option>
+                <option value="FORCA">Força &amp; Performance</option>
+                <option value="SAUDE">Saúde &amp; Qualidade de Vida</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label" for="st-reg-level">Nível de Experiência em Musculação</label>
+            <select class="form-select" id="st-reg-level">
+              <option value="INICIANTE">Iniciante (Nunca treinou / Menos de 6 meses)</option>
+              <option value="INTERMEDIARIO" selected>Intermediário (Treina há 6 meses - 2 anos)</option>
+              <option value="AVANCADO">Avançado (Mais de 2 anos com constância)</option>
+            </select>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label" for="st-reg-routine">Rotina / Dias e Horários Disponíveis</label>
+            <textarea class="form-control" id="st-reg-routine" rows="2" placeholder="Ex: Posso treinar 4 a 5x por semana, preferencialmente pela manhã..."></textarea>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label" for="st-reg-injuries">Lesões, Dores ou Restrições Médicas</label>
+            <textarea class="form-control" id="st-reg-injuries" rows="2" placeholder="Ex: Nenhuma restrição / Desconforto leve no joelho esquerdo..."></textarea>
+          </div>
+
+          <div class="form-check-lgpd mb-4">
+            <input type="checkbox" id="st-reg-lgpd" checked required>
+            <label for="st-reg-lgpd">Autorizo o tratamento seguro dos meus dados sensíveis para fins exclusivos de prescrição e consultoria esportiva com o Personal Trainer Balbino (Conforme Art. 7º e 11 da LGPD - Lei 13.709/2018).</label>
+          </div>
+
+          <button type="submit" class="btn-primary btn-block btn-lg" id="btn-st-reg-submit">
+            <i data-lucide="check-circle"></i>
+            <span>Concluir Meu Cadastro e Entrar</span>
+          </button>
+
+          <div class="portal-footer-links">
+            <span>Já possui conta de aluno?</span>
+            <button type="button" class="btn-link-accent" id="link-st-reg-to-login">Fazer Login</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- SUBVIEW 2: LOGIN DO ALUNO -->
+    <div class="portal-view-container hidden" id="view-student-login">
+      <div class="portal-card">
+        <div class="portal-card-header">
+          <div class="portal-badge-icon"><i data-lucide="log-in"></i></div>
+          <h3 class="portal-card-title">Acesso Exclusivo do Aluno</h3>
+          <p class="portal-card-subtitle">Entre com suas credenciais cadastradas para visualizar seus treinos, planos alimentares e agendar aulas com seu Personal.</p>
+        </div>
+
+        <form class="portal-form" id="form-student-login">
+          <div class="form-group mb-3">
+            <label class="form-label" for="st-login-email">E-mail</label>
+            <div class="input-icon-wrapper">
+              <i data-lucide="mail" class="input-icon"></i>
+              <input type="email" class="form-control with-icon" id="st-login-email" required placeholder="seu@email.com" autocomplete="email" autocapitalize="none">
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label" for="st-login-password">Senha</label>
+            <div class="input-icon-wrapper">
+              <i data-lucide="lock" class="input-icon"></i>
+              <input type="password" class="form-control with-icon with-action" id="st-login-password" required placeholder="Digite sua senha">
+              <button type="button" class="btn-toggle-password" id="btn-toggle-st-login-pwd" title="Ver senha"><i data-lucide="eye"></i></button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary btn-block btn-lg" id="btn-st-login-submit">
+            <i data-lucide="arrow-right"></i>
+            <span>Entrar no Meu Portal</span>
+          </button>
+
+          <div class="portal-footer-links">
+            <span>Primeiro acesso?</span>
+            <button type="button" class="btn-link-accent" id="link-st-login-to-register">Criar Primeiro Cadastro</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- SUBVIEW 3: ÁREA LOGADA DO ALUNO (PORTAL COMPLETO) -->
+    <div class="portal-app-container hidden" id="view-student-app">
+      <!-- Top Student Bar -->
+      <div class="student-app-topbar">
+        <div class="student-user-badge">
+          <div class="student-avatar-circle" id="st-app-avatar">AL</div>
+          <div class="student-meta">
+            <h3 class="student-name" id="st-app-name">Aluno Balbino Pro</h3>
+            <span class="student-goal-pill" id="st-app-goal"><i data-lucide="target"></i> Consultoria Ativa</span>
+          </div>
+        </div>
+
+        <div class="student-topbar-actions">
+          <button type="button" class="btn-danger-ghost btn-sm" id="btn-st-logout">
+            <i data-lucide="log-out"></i> <span>Sair</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs do Aluno -->
+      <div class="student-nav-tabs">
+        <button class="student-tab-btn active" data-st-tab="prescricoes" type="button" id="tab-btn-st-prescricoes">
+          <i data-lucide="dumbbell"></i> Prescrições
+        </button>
+        <button class="student-tab-btn" data-st-tab="agendamentos" type="button" id="tab-btn-st-agendamentos">
+          <i data-lucide="calendar"></i> Agendar Aula
+        </button>
+        <button class="student-tab-btn" data-st-tab="perfil" type="button" id="tab-btn-st-perfil">
+          <i data-lucide="user"></i> Meu Perfil
+        </button>
+      </div>
+
+      <!-- Student Tab Content: Prescrições -->
+      <div class="student-tab-pane active" id="st-pane-prescricoes">
+        <div class="student-subtabs">
+          <button class="btn-subtab active" id="btn-st-subtab-workout">🏋️‍♂️ Minha Ficha de Treino</button>
+          <button class="btn-subtab" id="btn-st-subtab-diet">🥗 Meu Plano Alimentar</button>
+        </div>
+
+        <div id="st-workout-view">
+          <div class="st-plan-header-card" id="st-workout-header">
+            <!-- Injetado via JS -->
+          </div>
+          <div class="st-workout-divisions-container" id="st-workout-divisions-container">
+            <!-- Injetado via JS -->
+          </div>
+        </div>
+
+        <div id="st-diet-view" class="hidden">
+          <div class="st-plan-header-card" id="st-diet-header">
+            <!-- Injetado via JS -->
+          </div>
+          <div class="st-diet-meals-container" id="st-diet-meals-container">
+            <!-- Injetado via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Tab Content: Agendamentos de Aulas -->
+      <div class="student-tab-pane hidden" id="st-pane-agendamentos">
+        <div class="st-booking-card">
+          <div class="st-card-title-group">
+            <i data-lucide="calendar-plus"></i>
+            <h4>Solicitar Novo Agendamento de Aula</h4>
+          </div>
+          <p class="text-sm text-muted mb-3">Escolha a data, o horário e o tipo de atendimento com seu Personal Trainer.</p>
+
+          <form id="form-student-book-appointment">
+            <div class="form-row-2 mb-3">
+              <div class="form-group">
+                <label class="form-label" for="st-book-date">Data Desejada *</label>
+                <input type="date" class="form-control" id="st-book-date" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="st-book-time">Horário de Preferência *</label>
+                <select class="form-select" id="st-book-time" required>
+                  <option value="06:00">06:00 (Manhã)</option>
+                  <option value="07:00" selected>07:00 (Manhã)</option>
+                  <option value="08:00">08:00 (Manhã)</option>
+                  <option value="09:00">09:00 (Manhã)</option>
+                  <option value="10:00">10:00 (Manhã)</option>
+                  <option value="14:00">14:00 (Tarde)</option>
+                  <option value="15:00">15:00 (Tarde)</option>
+                  <option value="16:00">16:00 (Tarde)</option>
+                  <option value="17:00">17:00 (Tarde)</option>
+                  <option value="18:00">18:00 (Noite)</option>
+                  <option value="19:00">19:00 (Noite)</option>
+                  <option value="20:00">20:00 (Noite)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group mb-3">
+              <label class="form-label" for="st-book-type">Tipo de Atendimento *</label>
+              <select class="form-select" id="st-book-type">
+                <option value="PRESENCIAL">Treino Presencial na Academia</option>
+                <option value="AVALIACAO">Avaliação Física &amp; Antropometria</option>
+                <option value="ONLINE">Consultoria &amp; Alinhamento Online</option>
+                <option value="TREINO_PERSONALIZADO">Treino Personalizado Especial</option>
+              </select>
+            </div>
+
+            <div class="form-group mb-3">
+              <label class="form-label" for="st-book-notes">Observações / Foco Desejado para a Aula</label>
+              <textarea class="form-control" id="st-book-notes" rows="2" placeholder="Ex: Gostaria de focar em técnica de agachamento e revisão de cargas..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary btn-block btn-lg" id="btn-st-submit-booking">
+              <i data-lucide="send"></i>
+              <span>Enviar Solicitação de Agendamento</span>
+            </button>
+          </form>
+        </div>
+
+        <div class="st-my-bookings-section mt-4">
+          <h4 class="st-section-title"><i data-lucide="clock"></i> Meus Agendamentos Solicitados</h4>
+          <div class="st-bookings-list" id="st-bookings-list-container">
+            <!-- Injetado via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Tab Content: Meu Perfil -->
+      <div class="student-tab-pane hidden" id="st-pane-perfil">
+        <div class="st-profile-card">
+          <div class="st-card-title-group">
+            <i data-lucide="user-check"></i>
+            <h4>Editar Meu Perfil &amp; Dados Corporais</h4>
+          </div>
+          <p class="text-sm text-muted mb-3">Atualize suas medidas atuais e rotina para que seu Personal ajuste suas prescrições de treino e nutrição.</p>
+
+          <form id="form-student-edit-profile">
+            <div class="form-group mb-3">
+              <label class="form-label" for="st-prof-name">Nome Completo</label>
+              <input type="text" class="form-control" id="st-prof-name" required>
+            </div>
+
+            <div class="form-row-2 mb-3">
+              <div class="form-group">
+                <label class="form-label" for="st-prof-phone">WhatsApp / Celular</label>
+                <input type="tel" class="form-control" id="st-prof-phone" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="st-prof-email">E-mail Cadastrado</label>
+                <input type="email" class="form-control" id="st-prof-email" readonly disabled>
+              </div>
+            </div>
+
+            <div class="form-row-3 mb-3">
+              <div class="form-group">
+                <label class="form-label" for="st-prof-weight">Peso Atual (kg) *</label>
+                <input type="text" class="form-control" id="st-prof-weight" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="st-prof-height">Altura (cm) *</label>
+                <input type="text" class="form-control" id="st-prof-height" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="st-prof-age">Idade</label>
+                <input type="number" class="form-control" id="st-prof-age">
+              </div>
+            </div>
+
+            <div class="form-row-2 mb-3">
+              <div class="form-group">
+                <label class="form-label" for="st-prof-goal">Objetivo Principal</label>
+                <select class="form-select" id="st-prof-goal">
+                  <option value="HIPERTROFIA">Hipertrofia</option>
+                  <option value="EMAGRECIMENTO">Emagrecimento</option>
+                  <option value="CONDICIONAMENTO">Condicionamento</option>
+                  <option value="FORCA">Força &amp; Performance</option>
+                  <option value="SAUDE">Saúde Geral</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="st-prof-level">Nível de Treino</label>
+                <select class="form-select" id="st-prof-level">
+                  <option value="INICIANTE">Iniciante</option>
+                  <option value="INTERMEDIARIO">Intermediário</option>
+                  <option value="AVANCADO">Avançado</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group mb-3">
+              <label class="form-label" for="st-prof-routine">Minha Rotina / Frequência de Treinos</label>
+              <textarea class="form-control" id="st-prof-routine" rows="2"></textarea>
+            </div>
+
+            <div class="form-group mb-4">
+              <label class="form-label" for="st-prof-injuries">Lesões, Dores ou Observações</label>
+              <textarea class="form-control" id="st-prof-injuries" rows="2"></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary btn-block btn-lg" id="btn-st-save-profile">
+              <i data-lucide="save"></i>
+              <span>Salvar Alterações do Meu Perfil</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="app-layout" id="app-main-layout">
     <!-- Mobile Sidebar Backdrop -->
     <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
@@ -297,6 +703,11 @@
           <i data-lucide="users"></i>
           <span>Gestão de Alunos</span>
           <span class="badge" id="student-count-badge">1</span>
+        </button>
+        <button class="nav-item" data-tab="agendamentos">
+          <i data-lucide="calendar"></i>
+          <span>Agendamentos de Aulas</span>
+          <span class="badge badge-accent" id="badge-agendamentos-count">0</span>
         </button>
         <button class="nav-item" data-tab="avaliacoes">
           <i data-lucide="activity"></i>
@@ -397,6 +808,35 @@
 
       <!-- TAB 1: DASHBOARD -->
       <section class="tab-pane active" id="tab-dashboard">
+        <!-- Invite Banner for Student Registration -->
+        <div class="invite-banner-card mb-4">
+          <div class="invite-banner-content">
+            <div class="invite-banner-icon">
+              <i data-lucide="smartphone"></i>
+            </div>
+            <div class="invite-banner-info">
+              <div class="d-flex align-center gap-2 flex-wrap mb-1">
+                <h4>Link de Primeiro Cadastro do Aluno pelo Celular</h4>
+                <span class="badge-accent-subtle">Mobile First</span>
+              </div>
+              <p class="text-sm text-muted mb-2">Envie este link via WhatsApp para seu aluno realizar o próprio cadastro, criar login/senha, solicitar agendamento de aulas e acompanhar treinos e dietas.</p>
+              <div class="invite-url-display-box">
+                <code id="display-invite-url">Carregando link...</code>
+              </div>
+            </div>
+          </div>
+          <div class="invite-banner-actions">
+            <button type="button" class="btn-primary" id="btn-copy-invite-link" title="Copiar link para a área de transferência">
+              <i data-lucide="copy"></i>
+              <span>Copiar Link</span>
+            </button>
+            <button type="button" class="btn-whatsapp" id="btn-whatsapp-invite-link" title="Enviar link formatado pelo WhatsApp">
+              <i data-lucide="message-square"></i>
+              <span>Enviar no WhatsApp</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Metric Cards -->
         <div class="metrics-grid">
           <div class="metric-card">
@@ -573,18 +1013,125 @@
 
       <!-- TAB 2: GESTÃO DE ALUNOS -->
       <section class="tab-pane" id="tab-alunos">
-        <div class="section-toolbar">
+        <div class="section-toolbar flex-wrap" style="gap: 12px;">
           <div class="search-box">
             <i data-lucide="search"></i>
             <input type="text" id="search-students" placeholder="Buscar aluno por nome, objetivo ou telefone...">
           </div>
-          <button class="btn-primary" id="btn-open-student-modal">
-            <i data-lucide="user-plus"></i> Novo Cadastro de Aluno
-          </button>
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn-secondary" id="btn-share-student-invite-tab" title="Enviar link para o aluno se cadastrar">
+              <i data-lucide="share-2"></i>
+              <span>Enviar Link de Cadastro</span>
+            </button>
+            <button type="button" class="btn-primary" id="btn-open-student-modal">
+              <i data-lucide="user-plus"></i> Novo Cadastro de Aluno
+            </button>
+          </div>
         </div>
 
         <div class="students-grid" id="students-cards-container">
           <!-- Student cards rendered by JS -->
+        </div>
+      </section>
+
+      <!-- TAB: AGENDAMENTOS DE AULAS -->
+      <section class="tab-pane" id="tab-agendamentos">
+        <!-- Top Stats Cards -->
+        <div class="metrics-grid mb-4">
+          <div class="metric-card">
+            <div class="metric-icon metric-amber">
+              <i data-lucide="clock"></i>
+            </div>
+            <div class="metric-body">
+              <span class="metric-label">Solicitações Pendentes</span>
+              <span class="metric-value" id="agendamentos-count-pendente">0</span>
+              <span class="metric-trend text-warning"><i data-lucide="alert-circle"></i> Aguardando confirmação</span>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon metric-blue">
+              <i data-lucide="calendar-check"></i>
+            </div>
+            <div class="metric-body">
+              <span class="metric-label">Aulas Confirmadas</span>
+              <span class="metric-value" id="agendamentos-count-confirmado">0</span>
+              <span class="metric-trend positive"><i data-lucide="check"></i> Próximos treinos</span>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon metric-emerald">
+              <i data-lucide="check-circle-2"></i>
+            </div>
+            <div class="metric-body">
+              <span class="metric-label">Aulas Concluídas</span>
+              <span class="metric-value" id="agendamentos-count-concluido">0</span>
+              <span class="metric-trend positive"><i data-lucide="trending-up"></i> Histórico realizado</span>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon metric-purple">
+              <i data-lucide="calendar"></i>
+            </div>
+            <div class="metric-body">
+              <span class="metric-label">Total Agendamentos</span>
+              <span class="metric-value" id="agendamentos-count-total">0</span>
+              <span class="metric-trend"><i data-lucide="activity"></i> Neon PostgreSQL</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header flex-wrap" style="gap: 12px;">
+            <div class="card-title-group">
+              <i data-lucide="calendar" class="text-accent"></i>
+              <h3>Gestão de Agendamentos &amp; Solicitações de Aulas</h3>
+            </div>
+            <div class="header-actions flex-wrap" style="gap: 8px;">
+              <button type="button" class="btn-secondary btn-sm" id="btn-share-invite-from-agenda">
+                <i data-lucide="share-2"></i> Link de Agendamento p/ Aluno
+              </button>
+              <button type="button" class="btn-primary btn-sm" id="btn-open-new-agendamento-modal">
+                <i data-lucide="plus"></i> Novo Agendamento
+              </button>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <!-- Filter Toolbar -->
+            <div class="form-grid-3 mb-4">
+              <div class="form-group">
+                <label class="form-label" for="filter-agendamento-status">Filtrar por Status</label>
+                <select class="form-select" id="filter-agendamento-status">
+                  <option value="ALL">Todos os Status</option>
+                  <option value="SOLICITADO" selected>Pendentes (Solicitados pelo Aluno)</option>
+                  <option value="CONFIRMADO">Confirmados</option>
+                  <option value="CONCLUIDO">Concluídos / Realizados</option>
+                  <option value="RECUSADO">Recusados / Cancelados</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="filter-agendamento-aluno">Filtrar por Aluno</label>
+                <select class="form-select" id="filter-agendamento-aluno">
+                  <option value="ALL">Todos os Alunos</option>
+                </select>
+              </div>
+
+              <div class="form-group flex-end">
+                <button type="button" class="btn-secondary w-100" id="btn-refresh-agendamentos">
+                  <i data-lucide="refresh-cw"></i> Atualizar Lista
+                </button>
+              </div>
+            </div>
+
+            <!-- List / Table of Agendamentos -->
+            <div class="agendamentos-table-wrapper" id="agendamentos-list-container">
+              <!-- Injetado via JS -->
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1833,6 +2380,97 @@
           <button class="btn-secondary" id="btn-cancel-settings">Fechar</button>
           <button class="btn-primary" id="btn-save-settings">
             <i data-lucide="check"></i> Salvar Configurações
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NOVO / EDITAR AGENDAMENTO (PERSONAL) -->
+  <div class="modal-backdrop" id="modal-agendamento">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="card-title-group">
+            <i data-lucide="calendar-plus" class="text-accent"></i>
+            <h3 class="modal-title" id="agendamento-modal-title">Novo Agendamento de Aula</h3>
+          </div>
+          <button type="button" class="btn-icon-ghost modal-close" id="btn-close-agendamento-modal"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-agendamento-save">
+            <input type="hidden" id="ag-form-id">
+            
+            <div class="form-group mb-3">
+              <label class="form-label" for="ag-student-id">Aluno *</label>
+              <select class="form-select" id="ag-student-id" required>
+                <!-- Preenchido via JS -->
+              </select>
+            </div>
+
+            <div class="form-row-2 mb-3">
+              <div class="form-group">
+                <label class="form-label" for="ag-date">Data da Aula *</label>
+                <input type="date" class="form-control" id="ag-date" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="ag-time">Horário *</label>
+                <select class="form-select" id="ag-time" required>
+                  <option value="06:00">06:00 (Manhã)</option>
+                  <option value="07:00" selected>07:00 (Manhã)</option>
+                  <option value="08:00">08:00 (Manhã)</option>
+                  <option value="09:00">09:00 (Manhã)</option>
+                  <option value="10:00">10:00 (Manhã)</option>
+                  <option value="11:00">11:00 (Manhã)</option>
+                  <option value="14:00">14:00 (Tarde)</option>
+                  <option value="15:00">15:00 (Tarde)</option>
+                  <option value="16:00">16:00 (Tarde)</option>
+                  <option value="17:00">17:00 (Tarde)</option>
+                  <option value="18:00">18:00 (Noite)</option>
+                  <option value="19:00">19:00 (Noite)</option>
+                  <option value="20:00">20:00 (Noite)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2 mb-3">
+              <div class="form-group">
+                <label class="form-label" for="ag-type">Tipo de Atendimento *</label>
+                <select class="form-select" id="ag-type">
+                  <option value="PRESENCIAL">Treino Presencial na Academia</option>
+                  <option value="AVALIACAO">Avaliação Física &amp; Antropometria</option>
+                  <option value="ONLINE">Consultoria &amp; Alinhamento Online</option>
+                  <option value="TREINO_PERSONALIZADO">Treino Personalizado Especial</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="ag-status">Status *</label>
+                <select class="form-select" id="ag-status">
+                  <option value="CONFIRMADO" selected>Confirmado</option>
+                  <option value="SOLICITADO">Solicitado (Pendente)</option>
+                  <option value="CONCLUIDO">Concluído / Realizado</option>
+                  <option value="RECUSADO">Recusado / Cancelado</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group mb-3">
+              <label class="form-label" for="ag-notes">Observações / Foco do Treino</label>
+              <textarea class="form-control" id="ag-notes" rows="2" placeholder="Ex: Treino A - Hipertrofia de Peitoral e Tríceps com ênfase em carga."></textarea>
+            </div>
+
+            <div class="form-check p-2" style="background: rgba(255,255,255,0.02); border-radius: var(--radius-sm);">
+              <label class="d-flex align-center gap-2 cursor-pointer mb-0">
+                <input type="checkbox" id="ag-notify-whatsapp" checked style="width: 16px; height: 16px; accent-color: var(--accent-emerald);">
+                <span class="text-xs">Abrir WhatsApp para enviar aviso de confirmação ao aluno após salvar</span>
+              </label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btn-cancel-agendamento">Cancelar</button>
+          <button type="button" class="btn-primary" id="btn-save-agendamento-submit">
+            <i data-lucide="save"></i> Salvar Agendamento
           </button>
         </div>
       </div>

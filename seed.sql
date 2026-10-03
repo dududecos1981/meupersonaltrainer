@@ -26,3 +26,10 @@ VALUES
     ('44444444-4444-4444-4444-444444444401', '11111111-1111-1111-1111-111111111111', 'Eduardo', 'eduardo@balbinopro.com', '(11) 98888-1111', '1988-05-15', 'M', 'HIPERTROFIA', true, now()),
     ('44444444-4444-4444-4444-444444444402', '11111111-1111-1111-1111-111111111111', 'Arthur', 'arthur@balbinopro.com', '(11) 99999-2222', '2000-08-20', 'M', 'CONDICIONAMENTO', true, now())
 ON CONFLICT (id) DO UPDATE SET nome = EXCLUDED.nome, email = EXCLUDED.email;
+
+-- 4. Inserir Agendamentos de Exemplo
+INSERT INTO public.agendamentos (id, personal_id, paciente_id, aluno_nome, aluno_telefone, data_hora, tipo_aula, status, observacoes)
+VALUES
+    ('55555555-5555-5555-5555-555555555501', '11111111-1111-1111-1111-111111111111', '44444444-4444-4444-4444-444444444401', 'Eduardo', '(11) 98888-1111', now() + interval '1 day', 'PRESENCIAL', 'CONFIRMADO', 'Treino de Peito e Tríceps com foco em carga progressiva'),
+    ('55555555-5555-5555-5555-555555555502', '11111111-1111-1111-1111-111111111111', '44444444-4444-4444-4444-444444444402', 'Arthur', '(11) 99999-2222', now() + interval '2 days', 'AVALIACAO', 'SOLICITADO', 'Reavaliação de percentual de gordura e medidas corporais')
+ON CONFLICT (id) DO NOTHING;

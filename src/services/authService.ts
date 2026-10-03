@@ -4,13 +4,15 @@
  */
 
 import { createClient, SupabaseClient, User, Session } from '@supabase/supabase-js';
-import { Personal } from '../types/database';
+import { Personal, Paciente } from '../types/database';
 
 // Chaves e URLs padrão (podem ser configuradas pelo usuário na interface ou via localStorage)
 const STORAGE_SUPABASE_URL = 'balbino_supabase_url';
 const STORAGE_SUPABASE_KEY = 'balbino_supabase_anon_key';
 const STORAGE_LOCAL_SESSION = 'balbino_local_auth_session';
 const STORAGE_LOCAL_USERS = 'balbino_local_registered_users';
+export const STORAGE_STUDENT_SESSION = 'balbino_student_auth_session';
+export const STORAGE_STUDENT_USERS = 'balbino_student_registered_users';
 
 // Configuração padrão pública (placeholder ou configurável no modal)
 const DEFAULT_SUPABASE_URL = 'https://xyzcompany.supabase.co';
@@ -33,6 +35,26 @@ export interface AuthResult {
   success: boolean;
   message?: string;
   data?: AuthUserSession | null;
+  error?: string;
+}
+
+export type StudentUserRecord = Paciente & {
+  idade?: number;
+  peso?: number;
+  altura?: number;
+  nivel?: string;
+  rotina?: string;
+  lesoes?: string;
+  objetivo?: string;
+  password?: string;
+};
+
+export interface StudentAuthResult {
+  success: boolean;
+  message?: string;
+  data?: StudentUserRecord | null;
+  student?: StudentUserRecord | null;
+  session?: { student: StudentUserRecord } | null;
   error?: string;
 }
 
@@ -129,6 +151,16 @@ class AuthService {
     } catch (e) {
       console.error('Erro ao restaurar sessão local:', e);
       this.currentSession = null;
+    }
+
+    try {
+      const savedStudent = localStorage.getItem(STORAGE_STUDENT_SESSION);
+      if (savedStudent) {
+        this.currentStudentSession = JSON.parse(savedStudent);
+      }
+    } catch (e) {
+      console.error('Erro ao restaurar sessão do aluno:', e);
+      this.currentStudentSession = null;
     }
   }
 
@@ -832,6 +864,300 @@ class AuthService {
       return 'Muitas tentativas em sequência. Aguarde alguns instantes e tente novamente.';
     }
     return msg;
+  }
+
+  // ============================================================================
+  // AUTENTICAÇÃO DO PORTAL DO ALUNO (ESTUDANTE)
+  // ============================================================================
+
+  private currentStudentSession: StudentUserRecord | null = null;
+  private studentListeners: ((student: StudentUserRecord | null) => void)[] = [];
+
+  public getStudentSession(): StudentUserRecord | null {
+    if (!this.currentStudentSession) {
+      try {
+        const stored = localStorage.getItem(STORAGE_STUDENT_SESSION);
+        if (stored) {
+          this.currentStudentSession = JSON.parse(stored);
+        }
+      } catch {}
+    }
+    return this.currentStudentSession;
+  }
+
+  public isStudentAuthenticated(): boolean {
+    return this.currentStudentSession !== null && Boolean(this.currentStudentSession.id);
+  }
+
+  public onStudentAuthStateChanged(callback: (student: StudentUserRecord | null) => void): () => void {
+    this.studentListeners.push(callback);
+    callback(this.getStudentSession());
+    return () => {
+      this.studentListeners = this.studentListeners.filter(l => l !== callback);
+    };
+  }
+
+  private notifyStudentListeners(): void {
+    this.studentListeners.forEach(cb => cb(this.currentStudentSession));
+  }
+
+  public getStudentUsers(): any[] {
+    try {
+      const data = localStorage.getItem(STORAGE_STUDENT_USERS);
+      const list = data ? JSON.parse(data) : [];
+
+      const defaultEduardo = {
+        id: '44444444-4444-4444-4444-444444444401',
+        personal_id: '11111111-1111-1111-1111-111111111111',
+        nome: 'Eduardo',
+        email: 'eduardo@balbinopro.com',
+        telefone: '(11) 98888-1111',
+        password: 'Edu123456',
+        sexo: 'M',
+        idade: 35,
+        peso: 78.5,
+        altura: 178,
+        nivel: 'AVANCADO',
+        objetivo: 'HIPERTROFIA',
+        rotina: 'Treino de hipertrofia e força 5x por semana',
+        lesoes: '',
+        termo_aceite_lgpd: true,
+        data_aceite_lgpd: '2026-01-01T00:00:00.000Z',
+        created_at: '2026-01-01T00:00:00.000Z'
+      };
+
+      const defaultArthur = {
+        id: '44444444-4444-4444-4444-444444444402',
+        personal_id: '11111111-1111-1111-1111-111111111111',
+        nome: 'Arthur',
+        email: 'arthur@balbinopro.com',
+        telefone: '(11) 99999-2222',
+        password: 'Arthur123456',
+        sexo: 'M',
+        idade: 24,
+        peso: 72.8,
+        altura: 175,
+        nivel: 'INTERMEDIARIO',
+        objetivo: 'CONDICIONAMENTO',
+        rotina: 'Treino funcional e musculação 4x por semana',
+        lesoes: '',
+        termo_aceite_lgpd: true,
+        data_aceite_lgpd: '2026-01-01T00:00:00.000Z',
+        created_at: '2026-01-01T00:00:00.000Z'
+      };
+
+      if (!list.some((u: any) => u.email?.toLowerCase() === 'eduardo@balbinopro.com')) {
+        list.unshift(defaultEduardo);
+      }
+      if (!list.some((u: any) => u.email?.toLowerCase() === 'arthur@balbinopro.com')) {
+        list.push(defaultArthur);
+      }
+      return list;
+    } catch {
+      return [];
+    }
+  }
+
+  public saveStudentUsers(users: any[]): void {
+    localStorage.setItem(STORAGE_STUDENT_USERS, JSON.stringify(users));
+  }
+
+  public studentSignUp(params: {
+    nome: string;
+    email: string;
+    senha: string;
+    telefone?: string;
+    sexo?: string;
+    idade?: number;
+    peso?: number;
+    altura?: number;
+    objetivo?: string;
+    nivel?: string;
+    lesoes?: string;
+    rotina?: string;
+    termo_aceite_lgpd?: boolean;
+    consentimento_lgpd?: boolean;
+  }): StudentAuthResult {
+    const { nome, email, senha, telefone, sexo, idade, peso, altura, objetivo, nivel, lesoes, rotina, termo_aceite_lgpd, consentimento_lgpd } = params;
+
+    if (termo_aceite_lgpd === false || consentimento_lgpd === false) {
+      return { success: false, error: 'É necessário concordar com os Termos de Privacidade e Proteção de Dados (LGPD).' };
+    }
+
+    if (!nome || !nome.trim()) {
+      return { success: false, error: 'Por favor, informe seu Nome Completo.' };
+    }
+    if (!email || !email.includes('@')) {
+      return { success: false, error: 'Por favor, informe um e-mail válido.' };
+    }
+    if (!senha || senha.length < 6) {
+      return { success: false, error: 'A senha deve conter no mínimo 6 caracteres.' };
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const studentUsers = this.getStudentUsers();
+
+    const existingIdx = studentUsers.findIndex(u => u.email.toLowerCase() === cleanEmail);
+    const studentId = existingIdx >= 0 ? studentUsers[existingIdx].id : this.generateUUID();
+    const now = new Date().toISOString();
+
+    const studentRecord: Paciente = {
+      id: studentId,
+      personal_id: '11111111-1111-1111-1111-111111111111',
+      nome: nome.trim(),
+      email: cleanEmail,
+      telefone: telefone ? telefone.trim() : '',
+      sexo: sexo || 'M',
+      objetivo_principal: (objetivo as any) || 'HIPERTROFIA',
+      termo_aceite_lgpd: termo_aceite_lgpd ?? consentimento_lgpd ?? true,
+      data_aceite_lgpd: now,
+      created_at: now
+    };
+
+    const studentUserRecord: StudentUserRecord = {
+      ...studentRecord,
+      password: senha,
+      idade: idade || 30,
+      peso: peso || 70,
+      altura: altura || 170,
+      nivel: nivel || 'INICIANTE',
+      objetivo: objetivo || 'HIPERTROFIA',
+      lesoes: lesoes || '',
+      rotina: rotina || ''
+    };
+
+    if (existingIdx >= 0) {
+      studentUsers[existingIdx] = studentUserRecord;
+    } else {
+      studentUsers.push(studentUserRecord);
+    }
+    this.saveStudentUsers(studentUsers);
+
+    this.currentStudentSession = studentUserRecord;
+    localStorage.setItem(STORAGE_STUDENT_SESSION, JSON.stringify(studentUserRecord));
+    this.notifyStudentListeners();
+
+    return {
+      success: true,
+      message: 'Cadastro concluído com sucesso! Bem-vindo ao Balbino Pro.',
+      student: studentUserRecord,
+      session: { student: studentUserRecord },
+      data: studentUserRecord
+    };
+  }
+
+  public studentSignIn(email: string, senha: string): StudentAuthResult {
+    if (!email || !email.includes('@')) {
+      return { success: false, error: 'Por favor, informe seu e-mail.' };
+    }
+    if (!senha) {
+      return { success: false, error: 'Por favor, digite sua senha.' };
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const studentUsers = this.getStudentUsers();
+
+    const matched = studentUsers.find(
+      u => u.email.toLowerCase() === cleanEmail && u.password === senha
+    );
+
+    if (!matched) {
+      if (cleanEmail === 'eduardo@balbinopro.com' && (senha === 'Edu123456' || senha === 'Edu150920@')) {
+        const eduardo = studentUsers.find(u => u.email === 'eduardo@balbinopro.com') || {
+          id: '44444444-4444-4444-4444-444444444401',
+          personal_id: '11111111-1111-1111-1111-111111111111',
+          nome: 'Eduardo',
+          email: 'eduardo@balbinopro.com',
+          telefone: '(11) 98888-1111',
+          sexo: 'M',
+          idade: 35,
+          peso: 78.5,
+          altura: 178,
+          nivel: 'AVANCADO',
+          objetivo: 'HIPERTROFIA',
+          rotina: 'Treino de hipertrofia e força 5x por semana'
+        };
+        this.currentStudentSession = eduardo;
+        localStorage.setItem(STORAGE_STUDENT_SESSION, JSON.stringify(eduardo));
+        this.notifyStudentListeners();
+        return { success: true, message: 'Login realizado com sucesso! Bem-vindo, Eduardo.', student: eduardo, session: { student: eduardo }, data: eduardo };
+      }
+
+      if (cleanEmail === 'arthur@balbinopro.com' && (senha === 'Arthur123456' || senha === 'arthur123')) {
+        const arthur = studentUsers.find(u => u.email === 'arthur@balbinopro.com') || {
+          id: '44444444-4444-4444-4444-444444444402',
+          personal_id: '11111111-1111-1111-1111-111111111111',
+          nome: 'Arthur',
+          email: 'arthur@balbinopro.com',
+          telefone: '(11) 99999-2222',
+          sexo: 'M',
+          idade: 24,
+          peso: 72.8,
+          altura: 175,
+          nivel: 'INTERMEDIARIO',
+          objetivo: 'CONDICIONAMENTO',
+          rotina: 'Treino funcional e musculação 4x por semana'
+        };
+        this.currentStudentSession = arthur;
+        localStorage.setItem(STORAGE_STUDENT_SESSION, JSON.stringify(arthur));
+        this.notifyStudentListeners();
+        return { success: true, message: 'Login realizado com sucesso! Bem-vindo, Arthur.', student: arthur, session: { student: arthur }, data: arthur };
+      }
+
+      return {
+        success: false,
+        error: 'E-mail ou senha incorretos. Caso seja seu primeiro acesso, cadastre-se no link enviado pelo seu Personal.'
+      };
+    }
+
+    this.currentStudentSession = matched;
+    localStorage.setItem(STORAGE_STUDENT_SESSION, JSON.stringify(matched));
+    this.notifyStudentListeners();
+
+    return {
+      success: true,
+      message: `Login realizado com sucesso! Olá, ${matched.nome}.`,
+      student: matched,
+      session: { student: matched },
+      data: matched
+    };
+  }
+
+  public studentSignOut(): void {
+    this.currentStudentSession = null;
+    localStorage.removeItem(STORAGE_STUDENT_SESSION);
+    this.notifyStudentListeners();
+  }
+
+  public updateStudentProfile(updatedData: Partial<any>): StudentAuthResult {
+    if (!this.currentStudentSession) {
+      return { success: false, error: 'Nenhum aluno conectado.' };
+    }
+
+    const cleanEmail = this.currentStudentSession.email?.toLowerCase();
+    const studentUsers = this.getStudentUsers();
+    const idx = studentUsers.findIndex(u => u.email.toLowerCase() === cleanEmail || u.id === this.currentStudentSession?.id);
+
+    const merged: StudentUserRecord = {
+      ...this.currentStudentSession,
+      ...updatedData
+    };
+
+    if (idx >= 0) {
+      studentUsers[idx] = { ...studentUsers[idx], ...updatedData };
+      this.saveStudentUsers(studentUsers);
+    }
+
+    this.currentStudentSession = merged;
+    localStorage.setItem(STORAGE_STUDENT_SESSION, JSON.stringify(merged));
+    this.notifyStudentListeners();
+
+    return {
+      success: true,
+      message: 'Seu perfil foi atualizado com sucesso!',
+      student: merged,
+      data: merged
+    };
   }
 }
 

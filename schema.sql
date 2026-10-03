@@ -162,6 +162,21 @@ CREATE TABLE IF NOT EXISTS public.logs_auditoria (
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 2.12 Tabela de Agendamentos e Solicitações de Aulas pelo Aluno
+CREATE TABLE IF NOT EXISTS public.agendamentos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    personal_id UUID NOT NULL REFERENCES public.personais(id) ON DELETE CASCADE,
+    paciente_id UUID NOT NULL REFERENCES public.pacientes(id) ON DELETE CASCADE,
+    aluno_nome TEXT NOT NULL,
+    aluno_telefone TEXT,
+    data_hora TIMESTAMP WITH TIME ZONE NOT NULL,
+    tipo_aula TEXT NOT NULL DEFAULT 'PRESENCIAL',
+    status TEXT NOT NULL DEFAULT 'SOLICITADO',
+    observacoes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- ==============================================================================
 -- 3. ÍNDICES DE ALTA PERFORMANCE
 -- ==============================================================================
@@ -182,6 +197,8 @@ CREATE INDEX IF NOT EXISTS idx_planilhas_personal ON public.planilhas_metricas(p
 CREATE INDEX IF NOT EXISTS idx_planilhas_paciente ON public.planilhas_metricas(paciente_id);
 CREATE INDEX IF NOT EXISTS idx_consentimentos_paciente ON public.consentimentos_lgpd(paciente_id);
 CREATE INDEX IF NOT EXISTS idx_logs_auditoria_personal ON public.logs_auditoria(personal_id);
+CREATE INDEX IF NOT EXISTS idx_agendamentos_personal ON public.agendamentos(personal_id);
+CREATE INDEX IF NOT EXISTS idx_agendamentos_paciente ON public.agendamentos(paciente_id);
 
 -- ==============================================================================
 -- 4. SEGURANÇA: ROW LEVEL SECURITY (RLS)
@@ -198,6 +215,7 @@ ALTER TABLE public.planos_alimentares ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.planilhas_metricas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.consentimentos_lgpd ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.logs_auditoria ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agendamentos ENABLE ROW LEVEL SECURITY;
 
 -- Função auxiliar para obter o ID do usuário autenticado atual
 CREATE OR REPLACE FUNCTION public.current_app_user_id()
@@ -300,6 +318,12 @@ CREATE POLICY "Isolamento de logs auditoria por personal"
     ON public.logs_auditoria FOR ALL
     USING (personal_id = public.current_app_user_id() OR public.current_app_user_id() IS NULL)
     WITH CHECK (personal_id = public.current_app_user_id() OR public.current_app_user_id() IS NULL);
+
+DROP POLICY IF EXISTS "Isolamento de agendamentos por personal e aluno" ON public.agendamentos;
+CREATE POLICY "Isolamento de agendamentos por personal e aluno"
+    ON public.agendamentos FOR ALL
+    USING (personal_id = public.current_app_user_id() OR paciente_id = public.current_app_user_id() OR public.current_app_user_id() IS NULL)
+    WITH CHECK (personal_id = public.current_app_user_id() OR paciente_id = public.current_app_user_id() OR public.current_app_user_id() IS NULL);
 
 -- ==============================================================================
 -- 5. SINCRONIZAÇÃO E TRIGGERS DE USUÁRIOS

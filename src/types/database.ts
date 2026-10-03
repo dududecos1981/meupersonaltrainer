@@ -182,19 +182,59 @@ export interface ConsentimentoLGPD {
   data_aceite: string;
   status: 'ATIVO' | 'REVOGADO';
   finalidades: string[]; // ['PRESCRICAO_TREINO', 'AVALIACAO_FISICA', 'NUTRICAO_ESPORTIVA']
+}
+
+/**
+ * Registro de Logs de Auditoria LGPD (Art. 46 da Lei 13.709/2018 e Art. 15 Lei 12.965/2014)
+ */
+export interface LogAuditoriaLGPD {
+  id: string;
+  paciente_id?: string | null;
+  personal_id: string;
+  recurso?: string;
+  recurso_id?: string;
+  tipo_acao?: string;
+  acao?: 'ACESSO' | 'EXPORTACAO' | 'ALTERACAO' | 'EXCLUSAO' | 'CONSENTIMENTO' | string;
+  detalhe?: string;
+  detalhes?: string;
+  ip?: string | null;
+  ip_origem?: string | null;
+  timestamp?: string;
   created_at?: string;
 }
 
 /**
- * Log de Auditoria LGPD & Marco Civil da Internet (Art. 15 Lei 12.965/2014 & Art. 46 Lei 13.709/2018)
+ * Agendamento de Aulas solicitado pelo Aluno ou agendado pelo Personal
  */
-export interface LogAuditoriaLGPD {
+export interface AgendamentoAula {
   id: string;
   personal_id: string;
-  recurso: string; // Ex: 'paciente', 'avaliacao_fisica', 'anamnese'
-  recurso_id?: string | null;
-  acao: 'CONSULTA' | 'INSERCAO' | 'EDICAO' | 'EXCLUSAO_DIREITO_ESQUECIMENTO' | 'EXPORTACAO_PORTABILIDADE';
-  detalhe?: string | null;
-  ip?: string | null;
-  timestamp: string;
+  paciente_id: string;
+  nome_aluno: string;
+  aluno_nome?: string;
+  telefone_aluno?: string;
+  aluno_telefone?: string;
+  data_aula: string; // YYYY-MM-DD
+  data_hora?: string; // ISO String
+  horario: string; // HH:mm
+  tipo: 'PRESENCIAL' | 'ONLINE' | 'AVALIACAO' | 'CONSULTORIA' | 'TREINO_PERSONALIZADO' | string;
+  tipo_aula?: 'PRESENCIAL' | 'ONLINE' | 'AVALIACAO' | 'CONSULTORIA' | 'TREINO_PERSONALIZADO' | string;
+  status: 'SOLICITADO' | 'CONFIRMADO' | 'RECUSADO' | 'CONCLUIDO';
+  observacoes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface StudentAuthSession {
+  student: Paciente & {
+    idade?: number;
+    peso?: number;
+    altura?: number;
+    nivel?: string;
+    rotina?: string;
+    lesoes?: string;
+    objetivo?: string;
+  };
+  token?: string;
+  loggedInAt: string;
 }
