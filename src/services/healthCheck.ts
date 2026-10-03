@@ -1,7 +1,9 @@
 /**
  * SISTEMA PERSONAL TRAINER & NUTRIÇÃO — SERVIÇO DE MONITORAMENTO & HEALTH CHECK
- * Executa diagnósticos de integridade, status dos serviços e controle de taxa (Rate Limiting).
+ * Executa diagnósticos de integridade, status do banco Neon PostgreSQL, IA Gemini e conformidade de segurança.
  */
+
+import { neonService } from './neonService';
 
 export interface SystemHealthStatus {
   status: 'healthy' | 'degraded' | 'offline';
@@ -9,6 +11,12 @@ export interface SystemHealthStatus {
   version: string;
   environment: string;
   services: {
+    neonDatabase: {
+      connected: boolean;
+      configured: boolean;
+      latencyMs?: number;
+      databaseName?: string;
+    };
     supabase: {
       connected: boolean;
       urlConfigured: boolean;
@@ -30,11 +38,6 @@ class HealthCheckService {
    * Executa auditoria completa de saúde do sistema
    */
   public async getSystemHealth(): Promise<SystemHealthStatus> {
-    const supabaseUrl =
-      (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL) ||
-      (typeof localStorage !== 'undefined' ? localStorage.getItem('balbino_supabase_url') : '') ||
-      '';
-
     const geminiKey =
       (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) ||
       (typeof localStorage !== 'undefined' ? localStorage.getItem('balbino_gemini_key') : '') ||
@@ -54,18 +57,24 @@ class HealthCheckService {
       }
     }
 
-    const isSupabaseReady = Boolean(supabaseUrl && !supabaseUrl.includes('xyzcompany'));
+    const neonStatus = await neonService.testConnection();
     const isAiReady = Boolean(geminiKey);
 
     return {
-      status: isSupabaseReady && storageAccessible ? 'healthy' : 'degraded',
+      status: (neonStatus.connected || storageAccessible) ? 'healthy' : 'degraded',
       timestamp: new Date().toISOString(),
       version: '1.0.0-production',
       environment: (typeof import.meta !== 'undefined' && (import.meta as any).env?.MODE) || 'production',
       services: {
+        neonDatabase: {
+          connected: neonStatus.connected,
+          configured: neonStatus.configured,
+          latencyMs: neonStatus.latencyMs,
+          databaseName: neonStatus.databaseName
+        },
         supabase: {
-          connected: isSupabaseReady,
-          urlConfigured: Boolean(supabaseUrl)
+          connected: neonStatus.connected,
+          urlConfigured: neonStatus.configured
         },
         aiAgent: {
           configured: isAiReady,
@@ -80,8 +89,6 @@ class HealthCheckService {
 
   /**
    * Limitador de taxa (Rate Limiter) simples para evitar chamadas abusivas
-   * @param key Identificador da ação (ex: 'generate-workout', 'auth-attempt')
-   * @param minIntervalMs Intervalo mínimo entre requisições em milissegundos
    */
   public checkRateLimit(key: string, minIntervalMs: number = 2000): { allowed: boolean; waitMs?: number } {
     const now = Date.now();

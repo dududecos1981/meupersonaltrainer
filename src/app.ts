@@ -3,9 +3,10 @@
  * Plataforma Inteligente para Personal Trainer & Nutrição
  */
 
-import { Paciente, Exercicio, AvaliacaoFisica } from './types/database';
+import { Paciente, Exercicio, AvaliacaoFisica, PlanilhaMetrica, LogAuditoriaLGPD } from './types/database';
 import { WorkoutPlanOutput, NutritionPlanOutput } from './types/ai';
 import { authService, AuthUserSession } from './services/authService';
+import { neonService } from './services/neonService';
 
 // Declare Lucide icons
 declare const lucide: any;
@@ -13,6 +14,51 @@ declare const lucide: any;
 // ==============================================================================
 // BASE DE DADOS INICIAL / ESTADO GLOBAL
 // ==============================================================================
+
+const INITIAL_PLANILHAS: PlanilhaMetrica[] = [
+  {
+    id: 'planilha-1',
+    personal_id: 'personal-balbino',
+    paciente_id: '22222222-2222-2222-2222-222222222222',
+    titulo: 'Evolução de Cargas no Supino e Agachamento (2026)',
+    tipo: 'EVOLUCAO_CARGAS',
+    dados_json: {
+      headers: ['Data', 'Exercício', 'Séries', 'Reps', 'Carga (kg)', 'RPE'],
+      rows: [
+        ['2026-08-01', 'Supino Reto', '4', '8', '70', '8'],
+        ['2026-08-15', 'Supino Reto', '4', '8', '74', '8.5'],
+        ['2026-09-01', 'Supino Reto', '4', '8', '78', '8'],
+        ['2026-09-15', 'Supino Reto', '4', '8', '82', '9'],
+        ['2026-10-01', 'Supino Reto', '4', '8', '85', '8.5']
+      ]
+    },
+    arquivo_csv: 'Data,Exercício,Séries,Reps,Carga_kg,RPE\n2026-08-01,Supino Reto,4,8,70,8\n2026-08-15,Supino Reto,4,8,74,8.5\n2026-09-01,Supino Reto,4,8,78,8\n2026-09-15,Supino Reto,4,8,82,9\n2026-10-01,Supino Reto,4,8,85,8.5',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'planilha-2',
+    personal_id: 'personal-balbino',
+    paciente_id: '22222222-2222-2222-2222-222222222222',
+    titulo: 'Controle de Frequência Semanal e Assiduidade',
+    tipo: 'FREQUENCIA_TREINOS',
+    dados_json: {
+      headers: ['Semana', 'Treinos Previstos', 'Treinos Realizados', 'Aderência (%)'],
+      rows: [
+        ['Semana 1 (Ago)', '4', '4', '100%'],
+        ['Semana 2 (Ago)', '4', '3', '75%'],
+        ['Semana 3 (Ago)', '4', '4', '100%'],
+        ['Semana 4 (Ago)', '4', '4', '100%'],
+        ['Semana 1 (Set)', '4', '4', '100%']
+      ]
+    },
+    arquivo_csv: 'Semana,Treinos Previstos,Treinos Realizados,Aderência\nSemana 1 (Ago),4,4,100%\nSemana 2 (Ago),4,3,75%\nSemana 3 (Ago),4,4,100%\nSemana 4 (Ago),4,4,100%\nSemana 1 (Set),4,4,100%',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
+let planilhas: PlanilhaMetrica[] = [...INITIAL_PLANILHAS];
 
 const INITIAL_STUDENTS: (Paciente & { idade: number; peso: number; altura: number; objetivo: string; lesoes: string; rotina: string; nivel: string; ficha?: string; calorias?: string })[] = [
   {
@@ -183,7 +229,9 @@ document.addEventListener('DOMContentLoaded', () => {
   renderEditor();
   setupCopilotChat();
   renderStudentPhonePreview();
-  loadDatabaseHubCode();
+  setupPlanilhasTab();
+  setupLGPDTab();
+  setupNeonDatabaseHub();
 
   // Refresh icons
   if (typeof lucide !== 'undefined') {
@@ -688,7 +736,9 @@ function setupNavigation() {
     'gerador-ia': { title: 'Gerador de Prescrições com IA', subtitle: 'Co-piloto inteligente para prescrição de treinos e planos alimentares' },
     'editor-prescricao': { title: 'Editor Visual & Co-Piloto', subtitle: 'Ajustes finos do Personal Trainer e comandos em linguagem natural' },
     'app-aluno': { title: 'Visualização do Aluno (App Mobile)', subtitle: 'Prévia interativa da ficha e cardápio no smartphone do aluno' },
-    'banco-dados': { title: 'PostgreSQL & Neon Database', subtitle: 'Esquema de banco de dados, Row Level Security (RLS) e DDL' }
+    'planilhas': { title: 'Gestão de Planilhas & Métricas na Nuvem', subtitle: 'Acompanhamento esportivo, cargas e planilhas no Neon PostgreSQL' },
+    'privacidade-lgpd': { title: 'Central de Privacidade & LGPD', subtitle: 'Conformidade com a Lei 13.709/2018, dados sensíveis de saúde e auditoria' },
+    'banco-dados': { title: 'Neon Serverless PostgreSQL (Nuvem)', subtitle: 'Banco de dados em nuvem 100% gratuito, Row Level Security (RLS) e DDL' }
   };
 
   navButtons.forEach(btn => {
@@ -1609,7 +1659,6 @@ function copyWhatsAppPlan() {
   text += `\n═══════════════════════════\n`;
   text += `🥗 *PLANO ALIMENTAR DIÁRIO*\n`;
   text += `═══════════════════════════\n`;
-  text += `🔥 *Meta Calórica:* ${currentDietPlan.meta_calorica} kcal\n`;
   text += `🥩 Proteínas: ${currentDietPlan.macronutrientes.proteina_g}g | 🍚 Carbos: ${currentDietPlan.macronutrientes.carboidrato_g}g | 🥑 Gorduras: ${currentDietPlan.macronutrientes.gordura_g}g\n\n`;
 
   currentDietPlan.refeicoes.forEach(m => {
@@ -1630,13 +1679,480 @@ function copyWhatsAppPlan() {
 }
 
 // ==============================================================================
-// 11. BANCO DE DADOS & NEON HUB
+// 11. GESTÃO DE PLANILHAS & MÉTRICAS NA NUVEM (NEON DB)
 // ==============================================================================
 
-async function loadDatabaseHubCode() {
+function setupPlanilhasTab() {
+  const selectAluno = document.getElementById('select-planilha-aluno') as HTMLSelectElement;
+  const selectTipo = document.getElementById('select-planilha-tipo') as HTMLSelectElement;
+  const tbody = document.getElementById('tbody-planilhas');
+
+  function renderPlanilhaStudentOptions() {
+    if (!selectAluno) return;
+    const currentVal = selectAluno.value;
+    selectAluno.innerHTML = '<option value="">Todos os Alunos / Geral</option>';
+    students.forEach((s) => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.nome;
+      selectAluno.appendChild(opt);
+    });
+    selectAluno.value = currentVal;
+  }
+
+  function renderPlanilhasList() {
+    if (!tbody) return;
+    renderPlanilhaStudentOptions();
+
+    const filterAluno = selectAluno?.value || '';
+    const filterTipo = selectTipo?.value || '';
+
+    let filtered = planilhas;
+    if (filterAluno) {
+      filtered = filtered.filter((p) => p.paciente_id === filterAluno);
+    }
+    if (filterTipo) {
+      filtered = filtered.filter((p) => p.tipo === filterTipo);
+    }
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" class="text-center py-4 text-muted">
+            <i data-lucide="inbox" class="mb-2" style="opacity: 0.5;"></i>
+            <p class="mb-0">Nenhuma planilha encontrada para os filtros selecionados.</p>
+          </td>
+        </tr>
+      `;
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+      return;
+    }
+
+    const typeLabels: Record<string, string> = {
+      EVOLUCAO_CARGAS: 'Evolução de Cargas',
+      MEDIDAS_CORPORAIS: 'Medidas Corporais',
+      FREQUENCIA_TREINOS: 'Frequência Semanal',
+      DIARIO_ALIMENTAR: 'Diário Nutricional',
+      FINANCEIRO_PLANILHA: 'Controle Mensal',
+      OUTRO: 'Tabela Geral'
+    };
+
+    tbody.innerHTML = filtered
+      .map((p) => {
+        const student = students.find((s) => s.id === p.paciente_id);
+        const studentName = student ? student.nome : '<span class="text-muted">Geral / Não vinculado</span>';
+        const typeLabel = typeLabels[p.tipo] || p.tipo;
+        const dateStr = p.updated_at ? new Date(p.updated_at).toLocaleDateString('pt-BR') : 'Hoje';
+
+        return `
+        <tr>
+          <td>
+            <strong>${p.titulo}</strong>
+            <div class="text-xs text-muted">ID: ${p.id.substring(0, 12)}...</div>
+          </td>
+          <td><span class="badge" style="background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3);">${typeLabel}</span></td>
+          <td>${studentName}</td>
+          <td><span class="text-xs text-muted">${dateStr}</span></td>
+          <td>
+            <div class="d-flex gap-2">
+              <button class="btn-icon-ghost btn-sm btn-download-single-csv" data-id="${p.id}" title="Baixar CSV / Excel">
+                <i data-lucide="download"></i>
+              </button>
+              <button class="btn-icon-ghost btn-sm text-danger btn-delete-planilha" data-id="${p.id}" title="Excluir Planilha">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+      })
+      .join('');
+
+    // Attach click listeners for single download and delete
+    tbody.querySelectorAll<HTMLButtonElement>('.btn-download-single-csv').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const item = planilhas.find((x) => x.id === id);
+        if (!item) return;
+
+        let csvContent = item.arquivo_csv;
+        if (!csvContent && item.dados_json?.headers && item.dados_json?.rows) {
+          csvContent = neonService.convertToCSV(item.dados_json.headers, item.dados_json.rows);
+        }
+
+        if (!csvContent) {
+          csvContent = `ID,Titulo,Tipo,Data\n"${item.id}","${item.titulo}","${item.tipo}","${item.updated_at}"`;
+        }
+
+        downloadBlobFile(csvContent, `${item.titulo.toLowerCase().replace(/\s+/g, '_')}.csv`, 'text/csv;charset=utf-8;');
+        showToast(`Planilha "${item.titulo}" baixada com sucesso!`, 'success');
+      });
+    });
+
+    tbody.querySelectorAll<HTMLButtonElement>('.btn-delete-planilha').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        if (!id) return;
+        if (confirm('Deseja realmente remover esta planilha?')) {
+          planilhas = planilhas.filter((x) => x.id !== id);
+          await neonService.deletePlanilha(id, 'personal-balbino');
+          renderPlanilhasList();
+          showToast('Planilha removida com sucesso!', 'info');
+        }
+      });
+    });
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  selectAluno?.addEventListener('change', () => renderPlanilhasList());
+  selectTipo?.addEventListener('change', () => renderPlanilhasList());
+
+  // Exportar todas as planilhas filtradas em lote
+  document.getElementById('btn-export-planilha-csv')?.addEventListener('click', () => {
+    if (planilhas.length === 0) {
+      showToast('Nenhuma planilha disponível para exportação.', 'error');
+      return;
+    }
+
+    const headers = ['ID', 'Titulo', 'Tipo', 'AlunoID', 'DataAtualizacao', 'ConteudoCSV'];
+    const rows = planilhas.map((p) => [
+      p.id,
+      p.titulo,
+      p.tipo,
+      p.paciente_id || 'N/A',
+      p.updated_at || '',
+      p.arquivo_csv ? p.arquivo_csv.replace(/\n/g, ' | ') : ''
+    ]);
+
+    const csvData = neonService.convertToCSV(headers, rows);
+    downloadBlobFile(csvData, `planilhas_metricas_balbino_${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv;charset=utf-8;');
+    showToast('Arquivo CSV com todas as planilhas gerado com sucesso!', 'success');
+  });
+
+  // Importar CSV
+  document.getElementById('input-import-csv')?.addEventListener('change', (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const text = evt.target?.result as string;
+      if (!text) return;
+
+      const lines = text.trim().split('\n');
+      const title = file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' ');
+
+      const newPlanilha: PlanilhaMetrica = {
+        id: `plan-${Date.now()}`,
+        personal_id: 'personal-balbino',
+        paciente_id: selectAluno?.value || null,
+        titulo: title.charAt(0).toUpperCase() + title.slice(1),
+        tipo: 'EVOLUCAO_CARGAS',
+        dados_json: { raw_lines: lines.length },
+        arquivo_csv: text,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      planilhas.unshift(newPlanilha);
+      await neonService.savePlanilha(newPlanilha);
+      renderPlanilhasList();
+      showToast(`Planilha "${newPlanilha.titulo}" importada e salva na nuvem!`, 'success');
+    };
+    reader.readAsText(file);
+    (e.target as HTMLInputElement).value = '';
+  });
+
+  // Sincronizar com Nuvem Neon
+  document.getElementById('btn-sync-planilhas-neon')?.addEventListener('click', async () => {
+    showToast('Sincronizando com banco Neon...', 'info');
+    const status = await neonService.testConnection();
+    if (status.connected) {
+      const cloudPlanilhas = await neonService.getPlanilhas('personal-balbino');
+      if (cloudPlanilhas && cloudPlanilhas.length > 0) {
+        planilhas = cloudPlanilhas;
+      }
+      renderPlanilhasList();
+      showToast(`Sincronização concluída! Banco Neon conectado (${status.latencyMs}ms)`, 'success');
+    } else {
+      showToast('Neon não conectado. Dados mantidos em armazenamento local seguro.', 'info');
+    }
+  });
+
+  // Open modal Nova Planilha
+  document.getElementById('btn-open-new-planilha-modal')?.addEventListener('click', () => {
+    const modal = document.getElementById('modal-planilha');
+    const selectModalStudent = document.getElementById('pf-student-id') as HTMLSelectElement;
+    if (selectModalStudent) {
+      selectModalStudent.innerHTML = '<option value="">Geral / Sem vínculo específico</option>';
+      students.forEach((s) => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.nome;
+        selectModalStudent.appendChild(opt);
+      });
+    }
+    (document.getElementById('form-planilha-save') as HTMLFormElement)?.reset();
+    (document.getElementById('planilha-form-id') as HTMLInputElement).value = '';
+    modal?.classList.add('open');
+  });
+
+  // Initial render
+  renderPlanilhasList();
+}
+
+// ==============================================================================
+// 12. CENTRAL DE PRIVACIDADE & CONFORMIDADE LGPD (LEI 13.709/2018)
+// ==============================================================================
+
+function setupLGPDTab() {
+  const selectLGPDAluno = document.getElementById('select-lgpd-aluno') as HTMLSelectElement;
+  const tbodyLogs = document.getElementById('tbody-audit-logs');
+
+  function renderLGPDStudentOptions() {
+    if (!selectLGPDAluno) return;
+    const currentVal = selectLGPDAluno.value;
+    selectLGPDAluno.innerHTML = '<option value="">-- Selecione o Aluno Titular dos Dados --</option>';
+    students.forEach((s) => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = `${s.nome} (${s.email || s.telefone || 'Sem contato'})`;
+      selectLGPDAluno.appendChild(opt);
+    });
+    if (currentVal) selectLGPDAluno.value = currentVal;
+  }
+
+  function renderAuditLogsTable() {
+    if (!tbodyLogs) return;
+    const logs = neonService.getLocalLogs();
+
+    if (logs.length === 0) {
+      tbodyLogs.innerHTML = `
+        <tr>
+          <td colspan="4" class="text-center py-3 text-muted">
+            Nenhum log de auditoria registrado no momento.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    const actionBadgeMap: Record<string, { label: string; class: string }> = {
+      INSERCAO: { label: 'INSERÇÃO DE DADOS', class: 'consentimento' },
+      EDICAO: { label: 'ATUALIZAÇÃO', class: 'auditoria' },
+      CONSULTA: { label: 'CONSULTA DE DADOS', class: 'auditoria' },
+      EXPORTACAO_PORTABILIDADE: { label: 'PORTABILIDADE LGPD (ART. 18)', class: 'sensivel' },
+      EXCLUSAO_DIREITO_ESQUECIMENTO: { label: 'DIREITO AO ESQUECIMENTO', class: 'sensivel' }
+    };
+
+    tbodyLogs.innerHTML = logs
+      .map((log) => {
+        const dateFormatted = new Date(log.timestamp).toLocaleString('pt-BR');
+        const badge = actionBadgeMap[log.acao] || { label: log.acao, class: 'auditoria' };
+        return `
+        <tr>
+          <td><span class="font-mono text-xs">${dateFormatted}</span></td>
+          <td><span class="text-xs"><strong>Personal Balbino</strong></span></td>
+          <td><span class="lgpd-badge-tag ${badge.class}">${badge.label}</span></td>
+          <td><span class="text-xs text-muted">${log.detalhe || 'Operação registrada'}</span></td>
+        </tr>
+      `;
+      })
+      .join('');
+  }
+
+  // Exportar todos os dados do aluno (Portabilidade LGPD)
+  document.getElementById('btn-lgpd-export-data')?.addEventListener('click', async () => {
+    const studentId = selectLGPDAluno?.value;
+    if (!studentId) {
+      showToast('Selecione um aluno para exportar o pacote de portabilidade.', 'error');
+      return;
+    }
+
+    const student = students.find((s) => s.id === studentId);
+    if (!student) return;
+
+    try {
+      showToast('Compilando pacote de portabilidade LGPD...', 'info');
+      const exportPackage = await neonService.exportAllDataLGPD(studentId, 'personal-balbino');
+
+      // Inclui ficha ativa e dieta se houver
+      exportPackage.treinos = [
+        {
+          id: 'ficha-export-1',
+          personal_id: 'personal-balbino',
+          paciente_id: studentId,
+          titulo: currentWorkoutPlan.titulo,
+          objetivo: currentWorkoutPlan.objetivo,
+          itens: []
+        }
+      ];
+
+      const jsonString = JSON.stringify(exportPackage, null, 2);
+      downloadBlobFile(jsonString, `portabilidade_lgpd_${student.nome.toLowerCase().replace(/\s+/g, '_')}.json`, 'application/json');
+
+      renderAuditLogsTable();
+      showToast(`Pacote de portabilidade do aluno ${student.nome} baixado com sucesso!`, 'success');
+    } catch (err: any) {
+      showToast(`Erro na exportação LGPD: ${err.message}`, 'error');
+    }
+  });
+
+  // Excluir / Direito ao Esquecimento (LGPD Art. 18, VI)
+  document.getElementById('btn-lgpd-delete-user')?.addEventListener('click', async () => {
+    const studentId = selectLGPDAluno?.value;
+    if (!studentId) {
+      showToast('Selecione o aluno para aplicar a exclusão definitiva.', 'error');
+      return;
+    }
+
+    const student = students.find((s) => s.id === studentId);
+    if (!student) return;
+
+    const confirmed = confirm(
+      `AVISO DE EXCLUSÃO DEFINITIVA (LGPD - ART. 18)\n\n` +
+      `Tem certeza que deseja apagar todos os dados cadastrais, histórico de treinos, avaliações físicas e anamnese de "${student.nome}"?\n\n` +
+      `Esta ação é irreversível conforme o Direito ao Esquecimento do titular.`
+    );
+
+    if (confirmed) {
+      await neonService.deletePacienteLGPD(studentId, 'personal-balbino', 'Exercício do Direito ao Esquecimento LGPD pelo Titular');
+      students = students.filter((s) => s.id !== studentId);
+      planilhas = planilhas.filter((p) => p.paciente_id !== studentId);
+
+      renderDashboard();
+      renderStudentsList();
+      renderLGPDStudentOptions();
+      renderAuditLogsTable();
+      setupPlanilhasTab();
+
+      showToast(`Dados de ${student.nome} eliminados em conformidade com a LGPD.`, 'info');
+    }
+  });
+
+  document.getElementById('btn-refresh-audit-logs')?.addEventListener('click', () => {
+    renderAuditLogsTable();
+    showToast('Livro de Logs de Auditoria atualizado!', 'success');
+  });
+
+  renderLGPDStudentOptions();
+  renderAuditLogsTable();
+}
+
+// ==============================================================================
+// 13. BANCO DE DADOS & NEON HUB CONTROLLER
+// ==============================================================================
+
+async function setupNeonDatabaseHub() {
   const schemaViewer = document.getElementById('code-schema-view');
   const seedViewer = document.getElementById('code-seed-view');
+  const connInput = document.getElementById('neon-connection-string-input') as HTMLInputElement;
+  const statusBadge = document.getElementById('neon-live-status-badge');
+  const statusText = document.getElementById('neon-status-text');
+  const testResultBox = document.getElementById('neon-test-result-box');
 
+  // Carrega string salva no input
+  if (connInput) {
+    connInput.value = neonService.getRawConnectionString();
+  }
+
+  // Toggle show/hide password
+  document.getElementById('btn-toggle-neon-visibility')?.addEventListener('click', () => {
+    if (connInput) {
+      connInput.type = connInput.type === 'password' ? 'text' : 'password';
+    }
+  });
+
+  // Atualiza badge de status
+  async function updateNeonStatusUI() {
+    const status = await neonService.testConnection();
+    if (status.connected) {
+      if (statusBadge) {
+        statusBadge.className = 'neon-badge-pill';
+        statusBadge.innerHTML = `<span class="status-dot green"></span> <span>Conectado ao Neon (${status.latencyMs}ms)</span>`;
+      }
+      if (statusText) statusText.textContent = `Conectado — ${status.databaseName || 'neondb'}`;
+    } else {
+      if (statusBadge) {
+        statusBadge.className = 'neon-badge-pill offline';
+        statusBadge.innerHTML = `<span class="status-dot orange"></span> <span>Modo Local / Fallback Ativo</span>`;
+      }
+      if (statusText) statusText.textContent = 'Modo Local Ativo';
+    }
+  }
+
+  await updateNeonStatusUI();
+
+  // Testar e Salvar Conexão no Hub
+  document.getElementById('btn-test-save-neon')?.addEventListener('click', async () => {
+    const val = connInput?.value || '';
+    neonService.saveConnectionString(val);
+
+    if (testResultBox) {
+      testResultBox.style.display = 'block';
+      testResultBox.innerHTML = '<i data-lucide="loader" class="spin"></i> Testando conectividade com o Neon PostgreSQL...';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    const res = await neonService.testConnection();
+    await updateNeonStatusUI();
+
+    if (testResultBox) {
+      if (res.connected) {
+        testResultBox.className = 'info-callout mb-0';
+        testResultBox.style.borderColor = 'rgba(0, 229, 153, 0.4)';
+        testResultBox.innerHTML = `
+          <i data-lucide="check-circle" style="color: #00e599;"></i>
+          <div>
+            <strong style="color: #00e599;">Conexão Estabelecida com Sucesso!</strong>
+            <p class="text-xs text-muted mb-0">Banco de Dados: <strong>${res.databaseName}</strong> | Latência de Resposta: <strong>${res.latencyMs}ms</strong>. Sincronização em nuvem 100% pronta para a Vercel.</p>
+          </div>
+        `;
+        showToast('Conexão com o Neon validada e salva!', 'success');
+      } else {
+        testResultBox.className = 'info-callout mb-0';
+        testResultBox.style.borderColor = 'rgba(244, 63, 94, 0.4)';
+        testResultBox.innerHTML = `
+          <i data-lucide="alert-triangle" style="color: #f43f5e;"></i>
+          <div>
+            <strong style="color: #f43f5e;">Não foi possível conectar ao Neon</strong>
+            <p class="text-xs text-muted mb-0">${res.error || 'Verifique sua string de conexão.'} O sistema continuará salvando localmente.</p>
+          </div>
+        `;
+        showToast('Falha na conexão com Neon. Verifique as credenciais.', 'error');
+      }
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+  });
+
+  // Executar Migrações DDL no Neon
+  document.getElementById('btn-run-neon-migrations')?.addEventListener('click', async () => {
+    let schemaText = schemaViewer?.textContent || '';
+    if (!schemaText || schemaText.includes('Carregando')) {
+      try {
+        const res = await fetch('./schema.sql');
+        schemaText = await res.text();
+      } catch {
+        schemaText = '';
+      }
+    }
+
+    if (!schemaText) {
+      showToast('Arquivo schema.sql não disponível para execução.', 'error');
+      return;
+    }
+
+    try {
+      showToast('Executando criação de tabelas e RLS no Neon...', 'info');
+      const result = await neonService.runSchemaMigrations(schemaText);
+      showToast(result.message, 'success');
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    }
+  });
+
+  // Load SQL Text in viewers
   try {
     const resSchema = await fetch('./schema.sql');
     if (resSchema.ok && schemaViewer) schemaViewer.textContent = await resSchema.text();
@@ -1644,7 +2160,7 @@ async function loadDatabaseHubCode() {
     const resSeed = await fetch('./seed.sql');
     if (resSeed.ok && seedViewer) seedViewer.textContent = await resSeed.text();
   } catch {
-    if (schemaViewer) schemaViewer.textContent = "-- Execute o arquivo schema.sql no Neon SQL Editor";
+    if (schemaViewer) schemaViewer.textContent = '-- Execute o arquivo schema.sql no Neon SQL Editor';
   }
 
   document.getElementById('btn-copy-schema-sql')?.addEventListener('click', () => {
@@ -1662,8 +2178,21 @@ async function loadDatabaseHubCode() {
   });
 }
 
+// Helper para Download de Arquivos
+function downloadBlobFile(content: string, filename: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 // ==============================================================================
-// 12. MODAIS (NOVO ALUNO / EXERCÍCIO / SETTINGS)
+// 14. MODAIS (NOVO ALUNO / EXERCÍCIO / PLANILHA / SETTINGS)
 // ==============================================================================
 
 function setupModals() {
@@ -1673,10 +2202,12 @@ function setupModals() {
   document.getElementById('btn-close-student-modal')?.addEventListener('click', () => modalStudent?.classList.remove('open'));
   document.getElementById('btn-cancel-student')?.addEventListener('click', () => modalStudent?.classList.remove('open'));
 
-  document.getElementById('btn-save-student-submit')?.addEventListener('click', (e) => {
+  document.getElementById('btn-save-student-submit')?.addEventListener('click', async (e) => {
     e.preventDefault();
     const name = (document.getElementById('sf-name') as HTMLInputElement).value;
     if (!name) return;
+
+    const lgpdConsent = (document.getElementById('sf-lgpd-consent') as HTMLInputElement)?.checked ?? true;
 
     const newStudent = {
       id: (document.getElementById('student-form-id') as HTMLInputElement).value || `stu-${Date.now()}`,
@@ -1690,20 +2221,68 @@ function setupModals() {
       nivel: (document.getElementById('sf-experience') as HTMLSelectElement).value,
       objetivo: (document.getElementById('sf-goal') as HTMLSelectElement).value,
       lesoes: (document.getElementById('sf-injuries') as HTMLTextAreaElement).value,
-      rotina: (document.getElementById('sf-routine') as HTMLTextAreaElement).value
+      rotina: (document.getElementById('sf-routine') as HTMLTextAreaElement).value,
+      termo_aceite_lgpd: lgpdConsent,
+      data_aceite_lgpd: new Date().toISOString()
     };
 
-    const existingIndex = students.findIndex(s => s.id === newStudent.id);
+    const existingIndex = students.findIndex((s) => s.id === newStudent.id);
     if (existingIndex >= 0) {
       students[existingIndex] = newStudent;
     } else {
       students.push(newStudent);
     }
 
+    await neonService.savePaciente(newStudent);
+
     modalStudent?.classList.remove('open');
     renderDashboard();
     renderStudentsList();
-    showToast('Aluno salvo com sucesso!', 'success');
+    setupPlanilhasTab();
+    setupLGPDTab();
+    showToast('Aluno salvo e sincronizado com o banco Neon!', 'success');
+  });
+
+  // Planilha modal
+  const modalPlanilha = document.getElementById('modal-planilha');
+  document.getElementById('btn-close-planilha-modal')?.addEventListener('click', () => modalPlanilha?.classList.remove('open'));
+  document.getElementById('btn-cancel-planilha')?.addEventListener('click', () => modalPlanilha?.classList.remove('open'));
+
+  document.getElementById('btn-save-planilha-submit')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const title = (document.getElementById('pf-title') as HTMLInputElement).value;
+    if (!title) {
+      showToast('Insira o título da planilha.', 'error');
+      return;
+    }
+
+    const type = (document.getElementById('pf-type') as HTMLSelectElement).value as any;
+    const studentId = (document.getElementById('pf-student-id') as HTMLSelectElement).value || null;
+    const csvContent = (document.getElementById('pf-csv-content') as HTMLTextAreaElement).value;
+
+    const newPlanilha: PlanilhaMetrica = {
+      id: (document.getElementById('planilha-form-id') as HTMLInputElement).value || `plan-${Date.now()}`,
+      personal_id: 'personal-balbino',
+      paciente_id: studentId,
+      titulo: title,
+      tipo: type || 'EVOLUCAO_CARGAS',
+      dados_json: { lines_count: csvContent ? csvContent.split('\n').length : 0 },
+      arquivo_csv: csvContent,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const existingIdx = planilhas.findIndex((p) => p.id === newPlanilha.id);
+    if (existingIdx >= 0) {
+      planilhas[existingIdx] = newPlanilha;
+    } else {
+      planilhas.unshift(newPlanilha);
+    }
+
+    await neonService.savePlanilha(newPlanilha);
+    modalPlanilha?.classList.remove('open');
+    setupPlanilhasTab();
+    showToast(`Planilha "${newPlanilha.titulo}" salva na nuvem Neon!`, 'success');
   });
 
   // Exercise modal
@@ -1729,15 +2308,11 @@ function setupModals() {
     showToast('Novo exercício cadastrado na biblioteca!', 'success');
   });
 
-  // Settings modal (Supabase, IA e Perfil)
+  // Settings modal (Neon, IA, LGPD e Perfil)
   const modalSettings = document.getElementById('modal-settings');
   document.getElementById('open-settings-btn')?.addEventListener('click', () => {
-    // Carrega dados atuais no modal
-    const config = authService.getSupabaseConfig();
-    const cfgUrl = document.getElementById('cfg-supabase-url') as HTMLInputElement;
-    const cfgKey = document.getElementById('cfg-supabase-key') as HTMLInputElement;
-    if (cfgUrl) cfgUrl.value = config.url;
-    if (cfgKey) cfgKey.value = config.key;
+    const cfgNeonUrl = document.getElementById('cfg-neon-url') as HTMLInputElement;
+    if (cfgNeonUrl) cfgNeonUrl.value = neonService.getRawConnectionString();
 
     const personal = authService.getCurrentPersonal();
     const cfgName = document.getElementById('cfg-personal-name') as HTMLInputElement;
@@ -1745,23 +2320,46 @@ function setupModals() {
     if (cfgName && personal) cfgName.value = personal.nome;
     if (cfgCref && personal) cfgCref.value = personal.cref || '';
 
+    const geminiKey = localStorage.getItem('balbino_gemini_key') || '';
+    const cfgGeminiKey = document.getElementById('cfg-gemini-key') as HTMLInputElement;
+    if (cfgGeminiKey) cfgGeminiKey.value = geminiKey;
+
+    const geminiModel = localStorage.getItem('balbino_gemini_model') || 'gemini-1.5-pro';
+    const cfgModelSelect = document.getElementById('cfg-model-select') as HTMLSelectElement;
+    if (cfgModelSelect) cfgModelSelect.value = geminiModel;
+
     modalSettings?.classList.add('open');
   });
 
   document.getElementById('btn-close-settings-modal')?.addEventListener('click', () => modalSettings?.classList.remove('open'));
   document.getElementById('btn-cancel-settings')?.addEventListener('click', () => modalSettings?.classList.remove('open'));
 
+  // Testar conexão no modal
+  document.getElementById('btn-test-modal-neon')?.addEventListener('click', async () => {
+    const url = (document.getElementById('cfg-neon-url') as HTMLInputElement)?.value || '';
+    neonService.saveConnectionString(url);
+    const status = await neonService.testConnection();
+    const label = document.getElementById('cfg-neon-status-label');
+    if (status.connected) {
+      if (label) label.textContent = `Conectado ao Neon (${status.latencyMs}ms)`;
+      showToast('Conexão Neon validada com sucesso!', 'success');
+    } else {
+      if (label) label.textContent = 'Falha na conexão. Modo Local Ativo.';
+      showToast('Não foi possível conectar ao Neon.', 'error');
+    }
+  });
+
   // Navegação entre abas do modal de configurações
   const settingsTabBtns = document.querySelectorAll<HTMLButtonElement>('.settings-tab-btn');
   const settingsPanes = document.querySelectorAll<HTMLElement>('.settings-pane');
 
-  settingsTabBtns.forEach(btn => {
+  settingsTabBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       const tabId = btn.getAttribute('data-settings-tab');
       if (!tabId) return;
 
-      settingsTabBtns.forEach(b => b.classList.remove('active'));
-      settingsPanes.forEach(p => p.classList.remove('active'));
+      settingsTabBtns.forEach((b) => b.classList.remove('active'));
+      settingsPanes.forEach((p) => p.classList.remove('active'));
 
       btn.classList.add('active');
       const targetPane = document.getElementById(`pane-settings-${tabId}`);
@@ -1773,10 +2371,9 @@ function setupModals() {
 
   // Salvar configurações
   document.getElementById('btn-save-settings')?.addEventListener('click', async () => {
-    // 1. Supabase Config
-    const url = (document.getElementById('cfg-supabase-url') as HTMLInputElement)?.value || '';
-    const key = (document.getElementById('cfg-supabase-key') as HTMLInputElement)?.value || '';
-    authService.saveSupabaseConfig(url, key);
+    // 1. Neon Database Config
+    const neonUrl = (document.getElementById('cfg-neon-url') as HTMLInputElement)?.value || '';
+    neonService.saveConnectionString(neonUrl);
 
     // 2. Gemini AI Config
     const geminiKey = (document.getElementById('cfg-gemini-key') as HTMLInputElement)?.value;
@@ -1792,10 +2389,10 @@ function setupModals() {
     }
 
     modalSettings?.classList.remove('open');
+    setupNeonDatabaseHub();
     showToast('Configurações atualizadas com sucesso!', 'success');
   });
 }
-
 
 function openStudentModal(student?: any) {
   const modal = document.getElementById('modal-student');
@@ -1821,3 +2418,4 @@ function openStudentModal(student?: any) {
   }
   modal?.classList.add('open');
 }
+

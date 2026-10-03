@@ -1,142 +1,116 @@
-# Sistema Personal Trainer Balbino
+# 🏋️‍♂️ Sistema Personal Trainer Balbino Pro
 
-Estrutura completa de Banco de Dados PostgreSQL (com Row Level Security) e Engenharia de Prompts para Agentes de IA especialistas em prescrição de treinos, planejamento nutricional esportivo e ajustes finos.
+Plataforma inteligente de prescrição de treinos, periodização biomecânica, nutrição esportiva e gestão de planilhas de evolução física na nuvem.
+
+O projeto foi construído com arquitetura **100% Gratuita na Nuvem**, alta performance e **total conformidade com as normas e leis de segurança vigentes no Brasil**.
 
 ---
 
-## 📁 Estrutura do Projeto
+## ☁️ Arquitetura 100% Gratuita na Nuvem
 
-```text
-├── schema.sql                   # DDL completo do PostgreSQL com RLS e Índices
-├── seed.sql                     # Dados de exemplo para testes imediatos
-├── package.json                 # Configuração do projeto Node/TypeScript
-├── tsconfig.json                # Configuração do compilador TypeScript
-└── src/
-    ├── index.ts                 # Exportação unificada
-    ├── types/
-    │   ├── database.ts          # Tipos TypeScript espelhando o PostgreSQL
-    │   └── ai.ts                # Tipos de entrada e saída dos Agentes IA
-    ├── prompts/
-    │   ├── workoutPrompt.ts     # Prompt 2: Prescrição de Treino Físico
-    │   ├── nutritionPrompt.ts   # Prompt 3: Prescrição de Plano Alimentar
-    │   └── adjustmentPrompt.ts  # Prompt 4: Edição e Ajustes Finos
-    └── services/
-        └── aiService.ts         # Serviço unificado de integração com Gemini / OpenAI
+Todo o ecossistema utiliza ferramentas de nível profissional sem custos de manutenção:
+
+| Ferramenta | Finalidade | Plano / Custo |
+| :--- | :--- | :--- |
+| **[GitHub](https://github.com)** | Armazenamento de código-fonte, versionamento seguro e CI/CD | **100% Gratuito** |
+| **[Neon Database](https://neon.tech)** | Banco de dados PostgreSQL Serverless & armazenamento de planilhas | **100% Gratuito** (0.5 GiB, branching, RLS) |
+| **[Vercel](https://vercel.com)** | Hospedagem em nuvem global, SSL automático e acesso virtual web/mobile | **100% Gratuito** (Hobby Plan) |
+| **[Google Gemini AI](https://aistudio.google.com)** | Co-piloto de inteligência artificial para prescrição esportiva | **100% Gratuito** (Google AI Studio) |
+
+---
+
+## 🛡️ Segurança & Conformidade com a Legislação Brasileira
+
+O sistema atende rigorosamente aos padrões de proteção de dados e diretrizes regulatórias:
+
+### 1. Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)
+* **Dados Sensíveis de Saúde (Art. 5º, II e Art. 11):** Anamneses, histórico clínico, restrições articulares, peso e dobras cutâneas recebem consentimento formal expresso e tratamento confidencial exclusivo para prescrição de saúde.
+* **Portabilidade de Dados (Art. 18, V):** Botão nativo na interface para exportar instantaneamente todos os dados do aluno em pacote aberto (`JSON` e planilha `CSV`).
+* **Direito ao Esquecimento (Art. 18, VI):** Eliminação segura e definitiva de todos os registros do aluno mediante solicitação formal, gerando registro com justificativa.
+* **Consentimento Registrado:** Marcação de timestamp e consentimento formal arquivado no banco.
+
+### 2. Marco Civil da Internet (Lei nº 12.965/2014, Art. 15)
+* **Trilha de Auditoria Permanente:** Registro automático de data, hora, operador, recurso acessado e ação efetuada em conformidade com o dever de guarda de registros.
+
+### 3. Segurança Técnica (OWASP & Boas Práticas)
+* **Row Level Security (RLS):** Isolamento criptográfico no PostgreSQL para garantir que cada personal trainer acesse estritamente os seus próprios pacientes e fichas.
+* **Consultas Parametrizadas:** Proteção completa contra *SQL Injection*.
+* **Sanitização de Entradas:** Proteção contra *Cross-Site Scripting (XSS)*.
+* **Cabeçalhos de Segurança HTTP no `vercel.json`:** `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security (HSTS)` e `Permissions-Policy`.
+
+---
+
+## 🚀 Guia Passo a Passo de Configuração e Deploy
+
+### Passo 1: Criar o Repositório no GitHub
+1. Acesse [github.com/new](https://github.com/new) e crie um novo repositório (pode ser **Público** ou **Privado**).
+2. No seu computador, vincule o repositório e envie o código:
+```bash
+git remote set-url origin https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git
+git add .
+git commit -m "feat: Sistema Personal Trainer com Neon PostgreSQL e LGPD"
+git branch -M main
+git push -u origin main
+```
+
+### Passo 2: Criar o Banco de Dados Gratuito no Neon
+1. Acesse [console.neon.tech](https://console.neon.tech) e faça login com sua conta do GitHub.
+2. Clique em **"Create Project"** (escolha a região `US East (Ohio)` ou `US East (N. Virginia)`).
+3. No painel inicial do projeto, copie a **Connection String** no formato:
+   ```
+   postgres://usuario:senha@ep-xyz.us-east-2.aws.neon.tech/neondb?sslmode=require
+   ```
+4. No sistema (aba **Neon PostgreSQL & Nuvem** ou nas Configurações), cole a string de conexão e clique em **"Testar & Salvar Conexão"**.
+5. Clique em **"Executar Migrações / DDL"** para criar automaticamente todas as tabelas, índices e políticas de segurança RLS no banco Neon em 1 clique!
+
+### Passo 3: Publicar Gratuitamente na Vercel
+1. Acesse [vercel.com](https://vercel.com) e conecte com seu GitHub.
+2. Clique em **"Add New..."** &rarr; **"Project"** e selecione o repositório do projeto.
+3. No formulário de importação:
+   - **Framework Preset:** `Vite`
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+4. Na seção **Environment Variables**, adicione:
+   - `VITE_NEON_DATABASE_URL` = *(sua connection string do Neon)*
+   - `VITE_GEMINI_API_KEY` = *(sua chave da API Gemini)*
+5. Clique em **"Deploy"**. Em segundos, seu acesso virtual estará publicado com HTTPS seguro!
+
+### Passo 4: Obter a Chave Gratuita do Google Gemini
+1. Acesse [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey).
+2. Crie uma chave de API gratuita e insira nas Configurações do Sistema.
+
+---
+
+## 📊 Gestão de Planilhas e Métricas na Nuvem
+
+O sistema possui uma aba dedicada de **Planilhas & Métricas** que permite:
+* Criar tabelas de acompanhamento esportivo (Evolução de Cargas 1RM, Circunferências Corporais, Frequência Semanal e Diário Nutricional).
+* **Exportação para Excel/CSV:** Arquivos gerados com UTF-8 BOM para abrir formatados no Microsoft Excel e Google Sheets.
+* **Importação de Planilhas CSV:** Leitura de arquivos locais e persistência direta na nuvem Neon PostgreSQL.
+* **Sincronização em Tempo Real:** Sincronização automática entre o cache local e o servidor de banco de dados.
+
+---
+
+## 💻 Desenvolvimento Local
+
+```bash
+# 1. Instalar dependências
+npm install
+
+# 2. Executar servidor local de desenvolvimento
+npm run dev
+
+# 3. Executar suíte de testes automatizados (Vitest)
+npm test
+
+# 4. Validar integridade e tipagem TypeScript
+npm run type-check
+
+# 5. Gerar pacote de produção
+npm run build
 ```
 
 ---
 
-## 🗄️ 1. Banco de Dados PostgreSQL (Prompt 1)
-
-O script [`schema.sql`](./schema.sql) cria a arquitetura relacional completa com isolamento de dados por Personal via **Row Level Security (RLS)**.
-
-### Tabelas Criadas:
-1. **`personais`**: Cadastro e credenciais dos personais (`id`, `nome`, `email`, `cref`, `created_at`).
-2. **`pacientes`**: Alunos vinculados ao personal (`id`, `personal_id`, `nome`, `email`, `telefone`, `data_nascimento`, `sexo`).
-3. **`exercicios`**: Biblioteca de exercícios com grupo muscular, equipamento e instruções.
-4. **`fichas_treino`**: Fichas associadas ao personal e aluno com período de validade.
-5. **`itens_treino`**: Exercícios de cada ficha com divisões (Treino A, B, C), séries, repetições, carga, descanso e ordem (`ON DELETE CASCADE`).
-6. **`avaliacoes_fisicas`**: Histórico antropométrico, bioimpedância, dobras cutâneas (`jsonb`) e perímetros (`jsonb`).
-7. **`planos_alimentares`**: Cardápios e metas de calorias/macronutrientes estruturados com status e refeições (`jsonb`).
-
-### Execução no Neon ou Supabase:
-1. Abra o [Neon Console](https://console.neon.tech) ou [Supabase Dashboard](https://supabase.com/dashboard).
-2. Acesse a aba **SQL Editor**.
-3. Copie e cole o conteúdo de [`schema.sql`](./schema.sql) e clique em **Run**.
-4. (Opcional) Execute o [`seed.sql`](./seed.sql) para popular o banco com dados de teste.
-
----
-
-## 🤖 2. Prompts dos Agentes de IA
-
-### Prompt 2 — Prescrição de Treino Físico
-- **Arquivo**: [`src/prompts/workoutPrompt.ts`](./src/prompts/workoutPrompt.ts)
-- **Função**: Gera divisões de treino (A/B, Push/Pull/Legs) com séries, repetições, tempos de descanso e observações de execução técnica biomecanicamente seguras.
-- **Saída**: JSON puro formatado com títulos, divisões e lista de exercícios.
-
-### Prompt 3 — Prescrição de Plano Alimentar Esportivo
-- **Arquivo**: [`src/prompts/nutritionPrompt.ts`](./src/prompts/nutritionPrompt.ts)
-- **Função**: Calcula o superávit/déficit calórico, divide os macronutrientes (proteína, carboidrato, gordura) e estrutura o cardápio distribuído estrategicamente em torno do horário de treino.
-- **Saída**: JSON puro com metas calóricas, macros e array de refeições.
-
-### Prompt 4 — Edição e Ajustes Finos (Comandos em Linguagem Natural)
-- **Arquivo**: [`src/prompts/adjustmentPrompt.ts`](./src/prompts/adjustmentPrompt.ts)
-- **Função**: Permite ao Personal Trainer realizar modificações em linguagem natural (ex: *"Troque o supino reto por halteres de 16kg e aumente 20g de proteína no pós-treino"*), preservando o restante da estrutura JSON intacta.
-
----
-
-## 🚀 Como Utilizar o Serviço de IA em Código
-
-```typescript
-import { PersonalTrainerAIService } from './src/services/aiService';
-
-const aiService = new PersonalTrainerAIService({
-  apiKey: process.env.GEMINI_API_KEY,
-  model: 'gemini-1.5-pro'
-});
-
-// 1. Gerar Treino
-const treino = await aiService.generateWorkoutPlan({
-  nome_aluno: 'Carlos Silva',
-  idade: 28,
-  genero: 'Masculino',
-  peso: 78.5,
-  altura: 178,
-  nivel_experiencia: 'INTERMEDIARIO',
-  objetivo_principal: 'HIPERTROFIA',
-  frequencia_semanal: 4,
-  equipamentos_disponiveis: 'ACADEMIA_COMPLETA',
-  lesoes_ou_dores: 'Leve desconforto no ombro direito em abdução máxima'
-});
-
-// 2. Aplicar Ajuste Fino
-const treinoAjustado = await aiService.applyAdjustment({
-  json_atual: treino,
-  instrucao_do_personal: 'Troque o Supino Reto por Supino Reto com Halteres e coloque 4 séries de 10 a 12'
-});
-```
-
----
-
-## 🔐 3. Autenticação do Sistema (Prompt 5 — Supabase Auth)
-
-O sistema conta com um módulo robusto de autenticação e gestão de perfil de Personal Trainers via **Supabase Auth** e persistência síncrona na tabela pública `personais`.
-
-- **Arquivo do Serviço**: [`src/services/authService.ts`](./src/services/authService.ts)
-- **Telas**: Login & Cadastro responsivos com alternador de abas, medidor de força de senha e visualização de credenciais.
-
-### 🛡️ Funcionalidades Implementadas:
-1. **Cadastro Completo**: Validação em tempo real de Nome, CREF (Registro Profissional obrigatório), E-mail e Senha (mínimo 6 dígitos com confirmação de senha).
-2. **Sincronização com a tabela `personais`**: 
-   - No Supabase: Trigger `handle_new_personal_user()` captura os metadados do `auth.users` e insere/atualiza no `public.personais`.
-   - Na aplicação: Chamada `upsert` defensiva garantindo persistência imediata mesmo em ambientes híbridos.
-3. **Gestão de Sessão Persistente**: Reconhecimento automático de sessão ativa ao abrir a plataforma, redirecionando imediatamente para o Dashboard.
-4. **Modo Demonstração Integrado**: Botão de acesso em 1 clique com conta de demonstração do Personal Balbino para testes ágeis.
-5. **Segurança (RLS)**: Isolamento estrito de visualização e edição de registros onde `auth.uid() = personal_id`.
-
----
-
-## 🚀 4. DevOps, Segurança & Pipeline CI/CD para Produção
-
-### ⚙️ Arquitetura de Build & Performance
-- **Bundler**: Vite 8 + ESBuild com minificação e divisão de chunks (`manualChunks` para isolar `@supabase/supabase-js`).
-- **Validação de Tipos**: `npm run type-check` (`tsc --noEmit`) executado antes de cada build.
-- **Cache de Assets**: Cabeçalho `Cache-Control: public, max-age=31536000, immutable` configurado no [`vercel.json`](./vercel.json) e [`netlify.toml`](./netlify.toml).
-
-### 🔒 Segurança & Hardening
-1. **Auditoria RLS**: Políticas estritas em todas as 7 tabelas do PostgreSQL (`auth.uid() = personal_id`).
-2. **Cabeçalhos HTTP de Segurança**:
-   - `X-Frame-Options: DENY` (Proteção contra Clickjacking)
-   - `X-Content-Type-Options: nosniff` (Prevenção de MIME-sniffing)
-   - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` (HSTS)
-   - `Referrer-Policy: strict-origin-when-cross-origin`
-   - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
-3. **Proteção de API & Rate Limiting**: Limitador de requisições integrado em [`src/services/healthCheck.ts`](./src/services/healthCheck.ts).
-
-### 🔄 Pipeline de CI/CD (GitHub Actions)
-O workflow [`.github/workflows/ci-cd.yml`](./.github/workflows/ci-cd.yml) é disparado automaticamente a cada push nas branches `main` (produção) e `develop` (staging):
-1. Instalação determinística de dependências.
-2. Checagem estrita de tipos TypeScript.
-3. Geração do bundle de produção com validação de variáveis de ambiente.
-4. Armazenamento seguro de artefatos de build.
-
+## ⚖️ Licença
+Distribuído sob a licença **MIT**.

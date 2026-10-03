@@ -332,10 +332,19 @@
           <span>Visualização do Aluno</span>
         </button>
 
-        <div class="nav-section-title">BANCO & SISTEMA</div>
+        <button class="nav-item" data-tab="planilhas">
+          <i data-lucide="table"></i>
+          <span>Planilhas &amp; Métricas</span>
+        </button>
+        <button class="nav-item" data-tab="privacidade-lgpd">
+          <i data-lucide="shield-check"></i>
+          <span>Privacidade &amp; LGPD</span>
+        </button>
+
+        <div class="nav-section-title">BANCO &amp; NUVEM</div>
         <button class="nav-item" data-tab="banco-dados">
           <i data-lucide="database"></i>
-          <span>PostgreSQL & Neon</span>
+          <span>Neon PostgreSQL (Nuvem)</span>
         </button>
       </nav>
 
@@ -1203,53 +1212,280 @@
         </div>
       </section>
 
-      <!-- TAB 8: BANCO DE DADOS & NEON / POSTGRESQL -->
+      <!-- TAB: PLANILHAS & MÉTRICAS NA NUVEM -->
+      <section class="tab-pane" id="tab-planilhas">
+        <div class="card mb-4">
+          <div class="card-header">
+            <div class="card-title-group">
+              <i data-lucide="table" class="text-accent"></i>
+              <h3>Gestão de Planilhas &amp; Métricas na Nuvem (Neon DB)</h3>
+            </div>
+            <div class="header-actions">
+              <button class="btn-secondary btn-sm" id="btn-export-planilha-csv">
+                <i data-lucide="download"></i> Exportar CSV / Excel
+              </button>
+              <label class="btn-secondary btn-sm mb-0 cursor-pointer" for="input-import-csv">
+                <i data-lucide="upload"></i> Importar CSV
+                <input type="file" id="input-import-csv" accept=".csv,.txt" style="display: none;">
+              </label>
+              <button class="btn-primary btn-sm" id="btn-open-new-planilha-modal">
+                <i data-lucide="plus"></i> Nova Planilha
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="text-sm text-muted mb-4">
+              Armazene e sincronize planilhas de evolução de cargas, circunferências corporais, frequência e tabelas de acompanhamento esportivo diretamente no <strong>Neon PostgreSQL</strong>.
+            </p>
+
+            <div class="form-grid-3 mb-4">
+              <div class="form-group">
+                <label class="form-label">Filtrar por Aluno</label>
+                <select class="form-select" id="select-planilha-aluno">
+                  <option value="">Todos os Alunos / Geral</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tipo de Planilha</label>
+                <select class="form-select" id="select-planilha-tipo">
+                  <option value="">Todos os Tipos</option>
+                  <option value="EVOLUCAO_CARGAS">Evolução de Cargas (1RM &amp; Séries)</option>
+                  <option value="MEDIDAS_CORPORAIS">Medidas &amp; Antropometria</option>
+                  <option value="FREQUENCIA_TREINOS">Frequência Semanal</option>
+                  <option value="DIARIO_ALIMENTAR">Diário Nutricional</option>
+                  <option value="FINANCEIRO_PLANILHA">Controle de Mensalidades</option>
+                </select>
+              </div>
+              <div class="form-group flex-end">
+                <button class="btn-secondary w-100" id="btn-sync-planilhas-neon">
+                  <i data-lucide="refresh-cw"></i> Sincronizar com Nuvem Neon
+                </button>
+              </div>
+            </div>
+
+            <!-- Tabela de Planilhas -->
+            <div class="table-custom-responsive">
+              <table class="table-custom" id="table-planilhas-list">
+                <thead>
+                  <tr>
+                    <th>Título da Planilha</th>
+                    <th>Tipo</th>
+                    <th>Aluno Vinculado</th>
+                    <th>Última Atualização</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-planilhas">
+                  <!-- Injetado por JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: PRIVACIDADE & LGPD -->
+      <section class="tab-pane" id="tab-privacidade-lgpd">
+        <div class="card mb-4">
+          <div class="card-header">
+            <div class="card-title-group">
+              <i data-lucide="shield-check" class="text-accent"></i>
+              <h3>Central de Privacidade &amp; Conformidade LGPD (Lei 13.709/2018)</h3>
+            </div>
+            <div class="badge-status-box">
+              <span class="status-dot green"></span>
+              <span class="text-xs">Normas Brasileiras Ativas</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="text-sm text-muted mb-4">
+              O <strong>Sistema Personal Trainer Balbino</strong> opera em estrita conformidade com a <strong>Lei Geral de Proteção de Dados (LGPD - Lei 13.709/2018)</strong>, com os regulamentos de dados sensíveis de saúde (Art. 11), diretrizes do CONFEF/CREF e registro de logs do <strong>Marco Civil da Internet (Lei 12.965/2014, Art. 15)</strong>.
+            </p>
+
+            <div class="stats-overview-grid mb-4">
+              <div class="stat-card">
+                <div class="stat-icon-wrapper cyan">
+                  <i data-lucide="file-text"></i>
+                </div>
+                <div class="stat-meta">
+                  <span class="stat-label">Termo de Consentimento</span>
+                  <span class="stat-value text-sm">Art. 7º e 11 LGPD</span>
+                  <span class="stat-desc">Obrigatório para dados de saúde</span>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon-wrapper emerald">
+                  <i data-lucide="download-cloud"></i>
+                </div>
+                <div class="stat-meta">
+                  <span class="stat-label">Portabilidade de Dados</span>
+                  <span class="stat-value text-sm">Art. 18, V LGPD</span>
+                  <span class="stat-desc">Exportação total JSON / CSV</span>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon-wrapper rose">
+                  <i data-lucide="user-x"></i>
+                </div>
+                <div class="stat-meta">
+                  <span class="stat-label">Direito ao Esquecimento</span>
+                  <span class="stat-value text-sm">Art. 18, VI LGPD</span>
+                  <span class="stat-desc">Eliminação segura com log</span>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon-wrapper purple">
+                  <i data-lucide="activity"></i>
+                </div>
+                <div class="stat-meta">
+                  <span class="stat-label">Trilha de Auditoria</span>
+                  <span class="stat-value text-sm">Art. 46 LGPD</span>
+                  <span class="stat-desc">Registro permanente de acessos</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ações de Titular -->
+            <div class="card mb-4" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color);">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <i data-lucide="user-check"></i>
+                  <h4>Gestão de Direitos do Titular (Aluno)</h4>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="form-grid-2 mb-3">
+                  <div class="form-group">
+                    <label class="form-label">Selecione o Aluno</label>
+                    <select class="form-select" id="select-lgpd-aluno">
+                      <!-- Injetado por JS -->
+                    </select>
+                  </div>
+                  <div class="form-group flex-end" style="gap: 10px; display: flex;">
+                    <button class="btn-secondary flex-1" id="btn-lgpd-export-data">
+                      <i data-lucide="download"></i> Baixar Pacote Portabilidade (JSON)
+                    </button>
+                    <button class="btn-danger flex-1" id="btn-lgpd-delete-user">
+                      <i data-lucide="trash-2"></i> Excluir / Esquecimento
+                    </button>
+                  </div>
+                </div>
+                <div class="alert-box" id="lgpd-action-feedback" style="display: none;"></div>
+              </div>
+            </div>
+
+            <!-- Tabela de Logs de Auditoria -->
+            <div class="card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color);">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <i data-lucide="list"></i>
+                  <h4>Livro de Logs de Auditoria &amp; Acesso a Dados Sensíveis</h4>
+                </div>
+                <button class="btn-secondary btn-sm" id="btn-refresh-audit-logs">
+                  <i data-lucide="refresh-cw"></i> Atualizar Logs
+                </button>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-custom-responsive">
+                  <table class="table-custom">
+                    <thead>
+                      <tr>
+                        <th>Data &amp; Hora</th>
+                        <th>Operador / Personal</th>
+                        <th>Ação LGPD</th>
+                        <th>Detalhe do Registro</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-audit-logs">
+                      <!-- Injetado por JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: BANCO DE DADOS & NEON SERVERLESS POSTGRESQL -->
       <section class="tab-pane" id="tab-banco-dados">
         <div class="db-hub-layout">
+          <!-- Neon Hero Card -->
+          <div class="neon-hero-card mb-4">
+            <div class="d-flex justify-between align-center mb-3 flex-wrap" style="gap: 12px;">
+              <div class="card-title-group">
+                <i data-lucide="database" class="text-accent" style="color: #00e599;"></i>
+                <h3 style="color: #fff;">Neon Serverless PostgreSQL (Nuvem 100% Gratuita)</h3>
+              </div>
+              <div id="neon-live-status-badge" class="neon-badge-pill offline">
+                <span class="status-dot orange"></span>
+                <span id="neon-status-text">Verificando Conexão...</span>
+              </div>
+            </div>
+            <p class="text-sm text-muted mb-4">
+              O Neon é um banco de dados PostgreSQL Serverless em nuvem com plano gratuito vitalício (0.5 GiB de armazenamento, suspensão automática e branching instantâneo). Não expõe credenciais e funciona perfeitamente com a hospedagem gratuita da Vercel.
+            </p>
+
+            <div class="form-grid-2 mb-3">
+              <div class="form-group">
+                <label class="form-label">String de Conexão Neon (DATABASE_URL)</label>
+                <div class="input-group">
+                  <input type="password" class="form-control" id="neon-connection-string-input" placeholder="postgres://usuario:senha@ep-xyz.us-east-2.aws.neon.tech/neondb?sslmode=require">
+                  <button class="btn-secondary" id="btn-toggle-neon-visibility" title="Visualizar string">
+                    <i data-lucide="eye"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="form-group flex-end" style="gap: 10px; display: flex;">
+                <button class="btn-primary" id="btn-test-save-neon">
+                  <i data-lucide="wifi"></i> Testar &amp; Salvar Conexão
+                </button>
+                <button class="btn-secondary" id="btn-run-neon-migrations" title="Executa schema.sql no banco Neon para criar tabelas e RLS">
+                  <i data-lucide="play"></i> Executar Migrações / DDL
+                </button>
+              </div>
+            </div>
+
+            <div id="neon-test-result-box" class="info-callout mb-0" style="display: none;">
+              <!-- Injetado por JS -->
+            </div>
+          </div>
+
+          <!-- Quick Setup Guide for Neon & Vercel Free Stack -->
           <div class="card mb-4">
             <div class="card-header">
               <div class="card-title-group">
-                <i data-lucide="database" class="text-accent"></i>
-                <h3>Conexão PostgreSQL &amp; Neon Database</h3>
-              </div>
-              <div class="db-status-badge">
-                <span class="status-dot green"></span>
-                <span>PostgreSQL 18 — Projeto NutriBalbino</span>
+                <i data-lucide="cloud-lightning" class="text-accent"></i>
+                <h3>Como Configurar sua Infraestrutura 100% Gratuita (Guia Passo a Passo)</h3>
               </div>
             </div>
             <div class="card-body">
-              <p class="text-sm text-muted mb-4">
-                O banco de dados do <strong>Sistema Personal Trainer Balbino</strong> está modelado com tabelas relacionais, integridade referencial com <code>ON DELETE CASCADE</code> e <strong>Row Level Security (RLS)</strong> ativado para garantir o isolamento absoluto dos dados de cada personal.
-              </p>
+              <div class="form-grid-3">
+                <div class="p-3" style="background: rgba(255,255,255,0.02); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                  <div class="d-flex align-center gap-2 mb-2">
+                    <span class="badge" style="background: #00e599; color: #000; font-weight: bold;">1</span>
+                    <strong style="color: #00e599;">Neon PostgreSQL</strong>
+                  </div>
+                  <p class="text-xs text-muted mb-2">Acesse <a href="https://console.neon.tech" target="_blank" style="color: var(--accent-primary);">console.neon.tech</a>, crie uma conta gratuita com GitHub e crie um projeto.</p>
+                  <p class="text-xs text-muted mb-0">Copie a string <code>Connection string</code> (com <code>psql</code> ou <code>Node.js</code>) e cole no campo acima.</p>
+                </div>
 
-              <div class="db-tables-summary-grid">
-                <div class="db-table-chip">
-                  <strong>personais</strong>
-                  <span>Cadastro e CREF</span>
+                <div class="p-3" style="background: rgba(255,255,255,0.02); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                  <div class="d-flex align-center gap-2 mb-2">
+                    <span class="badge" style="background: #6366f1; color: #fff; font-weight: bold;">2</span>
+                    <strong style="color: var(--text-accent);">GitHub Repositório</strong>
+                  </div>
+                  <p class="text-xs text-muted mb-2">Crie seu repositório gratuito no <a href="https://github.com" target="_blank" style="color: var(--accent-primary);">github.com</a> (público ou privado).</p>
+                  <p class="text-xs text-muted mb-0">Faça o <code>git push</code> do seu código. O versionamento seguro manterá seu histórico protegido.</p>
                 </div>
-                <div class="db-table-chip">
-                  <strong>pacientes</strong>
-                  <span>Alunos e Anamnese</span>
-                </div>
-                <div class="db-table-chip">
-                  <strong>exercicios</strong>
-                  <span>Biblioteca e Grupo</span>
-                </div>
-                <div class="db-table-chip">
-                  <strong>fichas_treino</strong>
-                  <span>Periodização</span>
-                </div>
-                <div class="db-table-chip">
-                  <strong>itens_treino</strong>
-                  <span>Séries, Cargas e Ordem</span>
-                </div>
-                <div class="db-table-chip">
-                  <strong>avaliacoes_fisicas</strong>
-                  <span>Antropometria e Dobras</span>
-                </div>
-                <div class="db-table-chip">
-                  <strong>planos_alimentares</strong>
-                  <span>Macros e Refeições JSONB</span>
+
+                <div class="p-3" style="background: rgba(255,255,255,0.02); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                  <div class="d-flex align-center gap-2 mb-2">
+                    <span class="badge" style="background: #3b82f6; color: #fff; font-weight: bold;">3</span>
+                    <strong style="color: #60a5fa;">Vercel Deploy</strong>
+                  </div>
+                  <p class="text-xs text-muted mb-2">No <a href="https://vercel.com" target="_blank" style="color: var(--accent-primary);">vercel.com</a>, importe seu repositório GitHub (Hobby Plan 100% Free).</p>
+                  <p class="text-xs text-muted mb-0">Adicione as variáveis de ambiente <code>VITE_NEON_DATABASE_URL</code> e <code>VITE_GEMINI_API_KEY</code>.</p>
                 </div>
               </div>
             </div>
@@ -1261,14 +1497,14 @@
               <div class="card-header">
                 <div class="card-title-group">
                   <i data-lucide="file-code"></i>
-                  <h3>schema.sql (DDL + RLS Policies)</h3>
+                  <h3>schema.sql (DDL + RLS Policies + LGPD)</h3>
                 </div>
                 <button class="btn-secondary btn-sm" id="btn-copy-schema-sql">
                   <i data-lucide="copy"></i> Copiar SQL
                 </button>
               </div>
               <div class="card-body p-0">
-                <pre class="code-viewer" id="code-schema-view">Carregando schema.sql...</pre>
+                <pre class="code-viewer-sql" id="code-schema-view">Carregando schema.sql...</pre>
               </div>
             </div>
 
@@ -1283,7 +1519,7 @@
                 </button>
               </div>
               <div class="card-body p-0">
-                <pre class="code-viewer" id="code-seed-view">Carregando seed.sql...</pre>
+                <pre class="code-viewer-sql" id="code-seed-view">Carregando seed.sql...</pre>
               </div>
             </div>
           </div>
@@ -1356,14 +1592,19 @@
               </select>
             </div>
 
-            <div class="form-group mt-3">
-              <label class="form-label">Histórico de Lesões, Dores ou Restrições</label>
-              <textarea class="form-control" id="sf-injuries" rows="2" placeholder="Ex: Hérnia de disco L5-S1 assintomática, evitar sobrecarga axial vertical pesada."></textarea>
-            </div>
-
-            <div class="form-group mt-3">
+                 <div class="form-group mt-3">
               <label class="form-label">Rotina, Horários e Preferências Alimentares</label>
               <textarea class="form-control" id="sf-routine" rows="2" placeholder="Ex: Treina às 06:30 em jejum ou café leve; almoça às 12:30."></textarea>
+            </div>
+
+            <!-- LGPD Consentimento -->
+            <div class="p-3 mt-3" style="background: rgba(16, 185, 129, 0.08); border-radius: var(--radius-md); border: 1px solid rgba(16, 185, 129, 0.25);">
+              <label class="d-flex align-center gap-2 cursor-pointer mb-0">
+                <input type="checkbox" id="sf-lgpd-consent" checked style="width: 18px; height: 18px; accent-color: var(--accent-emerald);">
+                <span class="text-xs" style="color: #d1fae5;">
+                  <strong>Consentimento LGPD (Art. 7º e 11 da Lei 13.709/2018):</strong> O aluno declara autorizar a coleta e tratamento confidencial dos seus dados sensíveis de saúde e biometria exclusivamente para fins de prescrição de treino e nutrição.
+                </span>
+              </label>
             </div>
           </form>
         </div>
@@ -1377,12 +1618,71 @@
     </div>
   </div>
 
+  <!-- MODAL: NOVA PLANILHA / MÉTRICAS -->
+  <div class="modal-backdrop" id="modal-planilha">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="card-title-group">
+            <i data-lucide="table" class="text-accent"></i>
+            <h3 class="modal-title" id="planilha-modal-title">Nova Planilha de Acompanhamento</h3>
+          </div>
+          <button class="btn-icon-ghost modal-close" id="btn-close-planilha-modal"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-planilha-save">
+            <input type="hidden" id="planilha-form-id">
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Título da Planilha *</label>
+                <input type="text" class="form-control" id="pf-title" required placeholder="Ex: Evolução Supino e Agachamento 2026">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tipo de Métricas *</label>
+                <select class="form-select" id="pf-type">
+                  <option value="EVOLUCAO_CARGAS">Evolução de Cargas (1RM &amp; Carga Efetiva)</option>
+                  <option value="MEDIDAS_CORPORAIS">Medidas &amp; Antropometria</option>
+                  <option value="FREQUENCIA_TREINOS">Frequência e Assiduidade</option>
+                  <option value="DIARIO_ALIMENTAR">Diário de Ingestão Calórica</option>
+                  <option value="FINANCEIRO_PLANILHA">Controle de Mensalidades</option>
+                  <option value="OUTRO">Outro / Tabela Personalizada</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group mt-3">
+              <label class="form-label">Aluno Vinculado</label>
+              <select class="form-select" id="pf-student-id">
+                <option value="">Geral / Sem vínculo específico</option>
+              </select>
+            </div>
+
+            <div class="form-group mt-3">
+              <label class="form-label">Conteúdo em Formato CSV ou Tabela (Linha por linha)</label>
+              <textarea class="form-control font-mono text-xs" id="pf-csv-content" rows="6" placeholder="Data,Exercício,Séries,Repetições,Carga_kg
+2026-09-01,Supino Reto,4,8,70
+2026-09-15,Supino Reto,4,8,74
+2026-10-01,Supino Reto,4,8,80"></textarea>
+              <span class="text-xs text-muted">Você pode colar dados do Excel diretamente ou digitar linhas separadas por vírgula.</span>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" id="btn-cancel-planilha">Cancelar</button>
+          <button class="btn-primary" id="btn-save-planilha-submit">
+            <i data-lucide="save"></i> Salvar na Nuvem Neon
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: NOVO EXERCÍCIO -->
   <div class="modal-backdrop" id="modal-exercise">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 class="modal-title">Adicionar Novo Exercício</h3>
+          <h3 class="modal-title">Cadastrar Novo Exercício</h3>
           <button class="btn-icon-ghost modal-close" id="btn-close-exercise-modal"><i data-lucide="x"></i></button>
         </div>
         <div class="modal-body">
@@ -1432,53 +1732,60 @@
     </div>
   </div>
 
-  <!-- MODAL: CONFIGURAÇÕES GERAIS (SUPABASE AUTH, IA & PERFIL) -->
+  <!-- MODAL: CONFIGURAÇÕES GERAIS (NEON DB, IA, LGPD & PERFIL) -->
   <div class="modal-backdrop" id="modal-settings">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
           <div class="card-title-group">
             <i data-lucide="sliders" class="text-accent"></i>
-            <h3 class="modal-title">Configurações do Sistema &amp; Integrações</h3>
+            <h3 class="modal-title">Configurações do Sistema &amp; Nuvem</h3>
           </div>
           <button class="btn-icon-ghost modal-close" id="btn-close-settings-modal"><i data-lucide="x"></i></button>
         </div>
         <div class="modal-body">
           <div class="settings-tabs-nav">
-            <button type="button" class="settings-tab-btn active" data-settings-tab="supabase">
-              <i data-lucide="shield-check"></i> Supabase Auth &amp; DB
+            <button type="button" class="settings-tab-btn active" data-settings-tab="neon">
+              <i data-lucide="database"></i> Neon PostgreSQL
             </button>
             <button type="button" class="settings-tab-btn" data-settings-tab="ai">
               <i data-lucide="sparkles"></i> Co-Piloto Gemini
+            </button>
+            <button type="button" class="settings-tab-btn" data-settings-tab="lgpd">
+              <i data-lucide="shield-check"></i> Privacidade &amp; LGPD
             </button>
             <button type="button" class="settings-tab-btn" data-settings-tab="perfil">
               <i data-lucide="user"></i> Perfil do Personal
             </button>
           </div>
 
-          <!-- TAB 1: SUPABASE CONFIG -->
-          <div class="settings-pane active" id="pane-settings-supabase">
+          <!-- TAB 1: NEON CONFIG -->
+          <div class="settings-pane active" id="pane-settings-neon">
             <div class="info-callout mb-3">
               <i data-lucide="info"></i>
               <div>
-                <strong>Supabase Authentication &amp; PostgreSQL</strong>
-                <p class="text-xs text-muted mb-0">Insira as credenciais do seu projeto Supabase (Project Settings &rarr; API) para salvar e autenticar diretamente na nuvem.</p>
+                <strong>Neon Serverless PostgreSQL (100% Gratuito)</strong>
+                <p class="text-xs text-muted mb-0">Insira a Connection String do seu projeto Neon (console.neon.tech) para persistência em nuvem segura e compatível com a Vercel.</p>
               </div>
             </div>
 
             <div class="form-group mb-3">
-              <label class="form-label" for="cfg-supabase-url">Project URL (Supabase)</label>
-              <input type="text" class="form-control" id="cfg-supabase-url" placeholder="https://seu-projeto.supabase.co">
+              <label class="form-label" for="cfg-neon-url">Connection String (PostgreSQL Neon)</label>
+              <input type="password" class="form-control" id="cfg-neon-url" placeholder="postgres://usuario:senha@ep-xyz.us-east-2.aws.neon.tech/neondb?sslmode=require">
             </div>
 
-            <div class="form-group mb-3">
-              <label class="form-label" for="cfg-supabase-key">Anon Public API Key</label>
-              <input type="password" class="form-control" id="cfg-supabase-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6...">
+            <div class="d-flex gap-2 mb-3">
+              <button class="btn-secondary btn-sm" id="btn-test-modal-neon">
+                <i data-lucide="wifi"></i> Testar Conexão Agora
+              </button>
+              <button class="btn-secondary btn-sm" id="btn-migrate-modal-neon">
+                <i data-lucide="play"></i> Executar Migrações DDL
+              </button>
             </div>
 
-            <div class="badge-status-box" id="supabase-status-info">
+            <div class="badge-status-box" id="neon-status-info">
               <span class="status-dot green"></span>
-              <span class="text-xs">Modo Ativo: <strong id="cfg-supabase-status-label">Simulado / Local com Persistência</strong></span>
+              <span class="text-xs">Status do Banco: <strong id="cfg-neon-status-label">Modo Local Seguro Ativo (Conecte ao Neon para Nuvem)</strong></span>
             </div>
           </div>
 
@@ -1488,7 +1795,7 @@
               O sistema utiliza um motor de IA inteligente com respostas completas. Se desejar usar sua própria chave da Google Gemini API para geração em tempo real:
             </p>
             <div class="form-group mb-3">
-              <label class="form-label" for="cfg-gemini-key">Chave de API Gemini (Google AI Studio)</label>
+              <label class="form-label" for="cfg-gemini-key">Chave de API Gemini (Google AI Studio — 100% Gratuito)</label>
               <input type="password" class="form-control" id="cfg-gemini-key" placeholder="AIzaSy...">
             </div>
             <div class="form-group mb-3">
@@ -1496,11 +1803,29 @@
               <select class="form-select" id="cfg-model-select">
                 <option value="gemini-1.5-pro">Gemini 1.5 Pro (Mais inteligente / Fisiologia aprofundada)</option>
                 <option value="gemini-1.5-flash">Gemini 1.5 Flash (Ultrarrápido)</option>
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash (Nova Geração)</option>
               </select>
             </div>
           </div>
 
-          <!-- TAB 3: PERFIL DO PERSONAL -->
+          <!-- TAB 3: PRIVACIDADE & LGPD -->
+          <div class="settings-pane" id="pane-settings-lgpd">
+            <div class="info-callout mb-3">
+              <i data-lucide="shield-check"></i>
+              <div>
+                <strong>Conformidade Legal Brasileira (LGPD - Lei 13.709/2018)</strong>
+                <p class="text-xs text-muted mb-0">Proteção integral de dados pessoais sensíveis de saúde com consentimento expresso e logs de auditoria.</p>
+              </div>
+            </div>
+            <ul class="text-xs text-muted" style="line-height: 1.8; padding-left: 18px;">
+              <li><strong>Tratamento de Dados de Saúde:</strong> Art. 11, inciso I (Consentimento específico e destacado).</li>
+              <li><strong>Direito de Portabilidade:</strong> Art. 18, inciso V (Exportação total dos registros em formatos abertos).</li>
+              <li><strong>Direito ao Esquecimento:</strong> Art. 18, inciso VI (Eliminação definitiva dos dados mediante requisição).</li>
+              <li><strong>Registro de Operações:</strong> Art. 15 da Lei 12.965/2014 (Marco Civil da Internet).</li>
+            </ul>
+          </div>
+
+          <!-- TAB 4: PERFIL DO PERSONAL -->
           <div class="settings-pane" id="pane-settings-perfil">
             <div class="form-group mb-3">
               <label class="form-label" for="cfg-personal-name">Nome do Personal Trainer</label>
@@ -1521,7 +1846,6 @@
       </div>
     </div>
   </div>
-
 
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>

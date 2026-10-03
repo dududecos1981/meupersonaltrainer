@@ -5,4 +5,5 @@ export * from './prompts/nutritionPrompt';
 export * from './prompts/adjustmentPrompt';
 export * from './services/aiService';
 export * from './services/authService';
+export * from './services/neonService';
 export * from './services/healthCheck';
