@@ -205,12 +205,12 @@ class NeonService {
           WHERE personal_id = ${safePersonalId}::uuid OR personal_id IS NULL
           ORDER BY nome ASC
         `;
-        return (rows as Paciente[]).filter((p) => p && !p.nome?.includes('Carlos Eduardo Silva') && p.id !== '22222222-2222-2222-2222-222222222222');
+        return (rows as Paciente[]).filter((p) => p && p.id !== '22222222-2222-2222-2222-222222222222');
       } catch (e) {
         console.warn('[NeonService] Erro ao buscar pacientes no Neon, usando fallback local:', e);
       }
     }
-    return this.getLocalList<Paciente>('pacientes').filter((p) => p && !p.nome?.includes('Carlos Eduardo Silva') && p.id !== '22222222-2222-2222-2222-222222222222');
+    return this.getLocalList<Paciente>('pacientes').filter((p) => p && p.id !== '22222222-2222-2222-2222-222222222222');
   }
 
   public async savePaciente(paciente: Paciente): Promise<Paciente> {
@@ -545,7 +545,7 @@ class NeonService {
       const data = JSON.parse(localStorage.getItem(`${STORAGE_LOCAL_DATA}_${key}`) || '[]');
       if (!Array.isArray(data)) return [];
       if (key === 'pacientes') {
-        return (data as any[]).filter((item: any) => item && !item.nome?.includes('Carlos Eduardo Silva') && item.id !== '22222222-2222-2222-2222-222222222222') as T[];
+        return (data as any[]).filter((item: any) => item && item.id !== '22222222-2222-2222-2222-222222222222') as T[];
       }
       if (key === 'planilhas') {
         return (data as any[]).filter((item: any) => item && item.paciente_id !== '22222222-2222-2222-2222-222222222222') as T[];

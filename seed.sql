@@ -19,3 +19,10 @@ VALUES
     ('33333333-3333-3333-3333-333333333304', '11111111-1111-1111-1111-111111111111', 'Puxada Frontal Aberta', 'Dorsal', 'Polia', 'Puxar em direção à fúrcula esternal mantendo o peito estufado.'),
     ('33333333-3333-3333-3333-333333333305', '11111111-1111-1111-1111-111111111111', 'Agachamento Livre', 'Quadríceps', 'Barra', 'Pés na largura dos ombros, descer até 90 graus mantendo coluna neutra.')
 ON CONFLICT (id) DO NOTHING;
+
+-- 3. Inserir Alunos / Pacientes (Eduardo e Arthur)
+INSERT INTO public.pacientes (id, personal_id, nome, email, telefone, data_nascimento, sexo, objetivo_principal, termo_aceite_lgpd, data_aceite_lgpd)
+VALUES
+    ('44444444-4444-4444-4444-444444444401', '11111111-1111-1111-1111-111111111111', 'Eduardo', 'eduardo@balbinopro.com', '(11) 98888-1111', '1988-05-15', 'M', 'HIPERTROFIA', true, now()),
+    ('44444444-4444-4444-4444-444444444402', '11111111-1111-1111-1111-111111111111', 'Arthur', 'arthur@balbinopro.com', '(11) 99999-2222', '2000-08-20', 'M', 'CONDICIONAMENTO', true, now())
+ON CONFLICT (id) DO UPDATE SET nome = EXCLUDED.nome, email = EXCLUDED.email;

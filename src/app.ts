@@ -30,27 +30,145 @@ export type StudentRecord = Paciente & {
 const STORAGE_STUDENTS_KEY = 'balbino_students_list_v2';
 const STORAGE_PLANILHAS_KEY = 'balbino_planilhas_list_v2';
 
+const DEFAULT_INITIAL_STUDENTS: StudentRecord[] = [
+  {
+    id: '44444444-4444-4444-4444-444444444401',
+    personal_id: '11111111-1111-1111-1111-111111111111',
+    nome: 'Eduardo',
+    email: 'eduardo@balbinopro.com',
+    telefone: '(11) 98888-1111',
+    sexo: 'M',
+    idade: 35,
+    peso: 78.5,
+    altura: 178,
+    nivel: 'AVANCADO',
+    objetivo: 'HIPERTROFIA',
+    lesoes: '',
+    rotina: 'Treino de hipertrofia e força 5x por semana',
+    termo_aceite_lgpd: true,
+    data_aceite_lgpd: '2026-01-01T00:00:00.000Z'
+  },
+  {
+    id: '44444444-4444-4444-4444-444444444402',
+    personal_id: '11111111-1111-1111-1111-111111111111',
+    nome: 'Arthur',
+    email: 'arthur@balbinopro.com',
+    telefone: '(11) 99999-2222',
+    sexo: 'M',
+    idade: 24,
+    peso: 72.8,
+    altura: 175,
+    nivel: 'INTERMEDIARIO',
+    objetivo: 'CONDICIONAMENTO',
+    lesoes: '',
+    rotina: 'Treino funcional e musculação 4x por semana',
+    termo_aceite_lgpd: true,
+    data_aceite_lgpd: '2026-01-01T00:00:00.000Z'
+  }
+];
+
+const DEFAULT_INITIAL_PLANILHAS: PlanilhaMetrica[] = [
+  {
+    id: 'plan-eduardo-01',
+    personal_id: '11111111-1111-1111-1111-111111111111',
+    paciente_id: '44444444-4444-4444-4444-444444444401',
+    titulo: 'Evolução de Cargas e Força — Eduardo',
+    tipo: 'EVOLUCAO_CARGAS',
+    dados_json: { lines_count: 5 },
+    arquivo_csv: 'Data,Exercicio,Series,Reps,Carga_kg,RPE\n2026-09-01,Supino Reto,4,10,80,8\n2026-09-08,Supino Reto,4,10,84,8.5\n2026-09-15,Supino Reto,4,8,88,9\n2026-09-22,Supino Reto,4,8,90,9',
+    created_at: '2026-09-01T10:00:00.000Z',
+    updated_at: '2026-09-22T10:00:00.000Z'
+  },
+  {
+    id: 'plan-arthur-01',
+    personal_id: '11111111-1111-1111-1111-111111111111',
+    paciente_id: '44444444-4444-4444-4444-444444444402',
+    titulo: 'Métricas e Avaliação — Arthur',
+    tipo: 'MEDIDAS_CORPORAIS',
+    dados_json: { lines_count: 4 },
+    arquivo_csv: 'Data,Peso_kg,Gordura_pct,MassaMagra_kg,Cintura_cm\n2026-08-01,75.0,18.5,61.1,84\n2026-09-01,73.8,16.8,61.4,82\n2026-10-01,72.8,15.2,61.7,80',
+    created_at: '2026-08-01T10:00:00.000Z',
+    updated_at: '2026-10-01T10:00:00.000Z'
+  }
+];
+
 function loadStoredStudents(): StudentRecord[] {
+  const result: StudentRecord[] = [];
+  const seenIds = new Set<string>();
+  const seenNames = new Set<string>();
+
+  const keysToInspect = [
+    STORAGE_STUDENTS_KEY,
+    'balbino_students_list',
+    'balbino_local_db_cache_v2_pacientes',
+    'balbino_local_db_cache_pacientes',
+    'balbino_pacientes_list'
+  ];
+
   try {
     if (typeof localStorage !== 'undefined') {
-      const raw = localStorage.getItem(STORAGE_STUDENTS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(s => s && s.nome && !s.nome.includes('Carlos Eduardo Silva') && s.id !== '22222222-2222-2222-2222-222222222222');
+      for (const key of keysToInspect) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              for (const item of parsed) {
+                if (item && item.nome && item.id !== '22222222-2222-2222-2222-222222222222') {
+                  const safeName = item.nome.trim().toLowerCase();
+                  if (!seenIds.has(item.id) && !seenNames.has(safeName)) {
+                    seenIds.add(item.id);
+                    seenNames.add(safeName);
+                    result.push({
+                      id: item.id,
+                      personal_id: item.personal_id || '11111111-1111-1111-1111-111111111111',
+                      nome: item.nome,
+                      email: item.email || '',
+                      telefone: item.telefone || '',
+                      sexo: item.sexo || 'M',
+                      idade: item.idade || 30,
+                      peso: item.peso || 70,
+                      altura: item.altura || 170,
+                      nivel: item.nivel || 'INICIANTE',
+                      objetivo: item.objetivo || item.objetivo_principal || 'EMAGRECIMENTO',
+                      lesoes: item.lesoes || '',
+                      rotina: item.rotina || '',
+                      termo_aceite_lgpd: item.termo_aceite_lgpd ?? true,
+                      data_aceite_lgpd: item.data_aceite_lgpd || new Date().toISOString()
+                    });
+                  }
+                }
+              }
+            }
+          } catch {}
         }
       }
     }
   } catch (e) {
     console.warn('Erro ao carregar alunos do cache local:', e);
   }
-  return [];
+
+  // Garante que os alunos Eduardo e Arthur estejam sempre presentes
+  for (const def of DEFAULT_INITIAL_STUDENTS) {
+    const defName = def.nome.trim().toLowerCase();
+    if (!seenNames.has(defName) && !seenIds.has(def.id)) {
+      seenIds.add(def.id);
+      seenNames.add(defName);
+      result.push({ ...def });
+    }
+  }
+
+  saveStoredStudents(result);
+  return result;
 }
 
 function saveStoredStudents(list: StudentRecord[]): void {
   try {
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(STORAGE_STUDENTS_KEY, JSON.stringify(list));
+      const json = JSON.stringify(list);
+      localStorage.setItem(STORAGE_STUDENTS_KEY, json);
+      localStorage.setItem('balbino_students_list', json);
+      localStorage.setItem('balbino_local_db_cache_v2_pacientes', json);
     }
   } catch (e) {
     console.warn('Erro ao salvar alunos no cache local:', e);
@@ -58,26 +176,59 @@ function saveStoredStudents(list: StudentRecord[]): void {
 }
 
 function loadStoredPlanilhas(): PlanilhaMetrica[] {
+  const result: PlanilhaMetrica[] = [];
+  const seenIds = new Set<string>();
+
+  const keysToInspect = [
+    STORAGE_PLANILHAS_KEY,
+    'balbino_planilhas_list',
+    'balbino_local_db_cache_v2_planilhas',
+    'balbino_local_db_cache_planilhas'
+  ];
+
   try {
     if (typeof localStorage !== 'undefined') {
-      const raw = localStorage.getItem(STORAGE_PLANILHAS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(p => p && p.paciente_id !== '22222222-2222-2222-2222-222222222222');
+      for (const key of keysToInspect) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              for (const p of parsed) {
+                if (p && p.id && p.paciente_id !== '22222222-2222-2222-2222-222222222222') {
+                  if (!seenIds.has(p.id)) {
+                    seenIds.add(p.id);
+                    result.push(p);
+                  }
+                }
+              }
+            }
+          } catch {}
         }
       }
     }
   } catch (e) {
     console.warn('Erro ao carregar planilhas do cache local:', e);
   }
-  return [];
+
+  for (const def of DEFAULT_INITIAL_PLANILHAS) {
+    if (!seenIds.has(def.id)) {
+      seenIds.add(def.id);
+      result.push({ ...def });
+    }
+  }
+
+  saveStoredPlanilhas(result);
+  return result;
 }
 
 function saveStoredPlanilhas(list: PlanilhaMetrica[]): void {
   try {
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(STORAGE_PLANILHAS_KEY, JSON.stringify(list));
+      const json = JSON.stringify(list);
+      localStorage.setItem(STORAGE_PLANILHAS_KEY, json);
+      localStorage.setItem('balbino_planilhas_list', json);
+      localStorage.setItem('balbino_local_db_cache_v2_planilhas', json);
     }
   } catch (e) {
     console.warn('Erro ao salvar planilhas no cache local:', e);
@@ -249,17 +400,36 @@ async function syncFromNeonCloud() {
   try {
     const cloudStudents = await neonService.getPacientes('personal-balbino');
     if (cloudStudents && cloudStudents.length > 0) {
-      const formatted: StudentRecord[] = cloudStudents.map(cs => ({
-        ...cs,
-        idade: (cs as any).idade || 30,
-        peso: (cs as any).peso || 70,
-        altura: (cs as any).altura || 170,
-        objetivo: (cs as any).objetivo || cs.objetivo_principal || 'EMAGRECIMENTO',
-        lesoes: (cs as any).lesoes || '',
-        rotina: (cs as any).rotina || '',
-        nivel: (cs as any).nivel || 'INICIANTE'
-      }));
-      students = formatted;
+      const mergedList = [...students];
+      for (const cs of cloudStudents) {
+        if (!cs || !cs.nome) continue;
+        const idx = mergedList.findIndex(
+          e => e.id === cs.id || e.nome.trim().toLowerCase() === cs.nome.trim().toLowerCase()
+        );
+        const formattedStudent: StudentRecord = {
+          id: cs.id,
+          personal_id: cs.personal_id || '11111111-1111-1111-1111-111111111111',
+          nome: cs.nome,
+          email: cs.email || '',
+          telefone: cs.telefone || '',
+          sexo: cs.sexo || 'M',
+          idade: (cs as any).idade || 30,
+          peso: (cs as any).peso || 70,
+          altura: (cs as any).altura || 170,
+          objetivo: (cs as any).objetivo || cs.objetivo_principal || 'EMAGRECIMENTO',
+          lesoes: (cs as any).lesoes || '',
+          rotina: (cs as any).rotina || '',
+          nivel: (cs as any).nivel || 'INICIANTE',
+          termo_aceite_lgpd: cs.termo_aceite_lgpd ?? true,
+          data_aceite_lgpd: cs.data_aceite_lgpd || new Date().toISOString()
+        };
+        if (idx >= 0) {
+          mergedList[idx] = { ...mergedList[idx], ...formattedStudent };
+        } else {
+          mergedList.push(formattedStudent);
+        }
+      }
+      students = mergedList;
       saveStoredStudents(students);
       renderDashboard();
       renderStudentsList();
