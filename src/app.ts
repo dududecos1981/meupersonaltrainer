@@ -2949,19 +2949,25 @@ function openStudentModal(student?: any) {
 
 function setupStudentPortal() {
   const portalContainer = document.getElementById('portal-aluno-container');
+  const authContainer = document.getElementById('auth-container');
+  const appLayout = document.getElementById('app-main-layout');
+
   const viewRegister = document.getElementById('view-student-register');
   const viewLogin = document.getElementById('view-student-login');
   const viewApp = document.getElementById('view-student-app');
 
   const btnSwitchToStudent = document.getElementById('btn-switch-to-student-portal');
-  const btnBackToTrainerLogin = document.getElementById('btn-back-to-trainer-login');
-  const btnBackToTrainerFromApp = document.getElementById('btn-back-to-trainer-from-app');
-  const linkStToLogin = document.getElementById('link-st-to-login');
-  const linkStToRegister = document.getElementById('link-st-to-register');
-  const btnStLogout = document.getElementById('btn-student-logout');
+  const btnSwitchToPersonal = document.getElementById('btn-switch-to-personal-portal');
+  const linkStRegToLogin = document.getElementById('link-st-reg-to-login');
+  const linkStLoginToReg = document.getElementById('link-st-login-to-register');
+  const btnStLogout = document.getElementById('btn-st-logout');
 
   function showStudentView(view: 'register' | 'login' | 'app') {
     if (!portalContainer) return;
+
+    if (authContainer) authContainer.classList.add('hidden');
+    if (appLayout && !authService.isAuthenticated()) appLayout.classList.add('hidden');
+
     portalContainer.classList.remove('hidden');
 
     viewRegister?.classList.add('hidden');
@@ -2981,6 +2987,13 @@ function setupStudentPortal() {
 
   function hideStudentPortal() {
     portalContainer?.classList.add('hidden');
+    if (authService.isAuthenticated()) {
+      if (appLayout) appLayout.classList.remove('hidden');
+      if (authContainer) authContainer.classList.add('hidden');
+    } else {
+      if (authContainer) authContainer.classList.remove('hidden');
+      if (appLayout) appLayout.classList.add('hidden');
+    }
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
@@ -2993,11 +3006,12 @@ function setupStudentPortal() {
     }
   });
 
-  btnBackToTrainerLogin?.addEventListener('click', () => hideStudentPortal());
-  btnBackToTrainerFromApp?.addEventListener('click', () => hideStudentPortal());
+  btnSwitchToPersonal?.addEventListener('click', () => hideStudentPortal());
+  document.getElementById('btn-back-to-trainer-login')?.addEventListener('click', () => hideStudentPortal());
+  document.getElementById('btn-back-to-trainer-from-app')?.addEventListener('click', () => hideStudentPortal());
 
-  linkStToLogin?.addEventListener('click', () => showStudentView('login'));
-  linkStToRegister?.addEventListener('click', () => showStudentView('register'));
+  linkStRegToLogin?.addEventListener('click', () => showStudentView('login'));
+  linkStLoginToReg?.addEventListener('click', () => showStudentView('register'));
 
   btnStLogout?.addEventListener('click', () => {
     if (confirm('Deseja realmente sair da sua Área do Aluno?')) {
@@ -3012,6 +3026,10 @@ function setupStudentPortal() {
     const pwdInput = document.getElementById('st-reg-password') as HTMLInputElement;
     if (pwdInput) pwdInput.type = pwdInput.type === 'password' ? 'text' : 'password';
   });
+  document.getElementById('btn-toggle-st-confirm-pwd')?.addEventListener('click', () => {
+    const pwdInput = (document.getElementById('st-reg-confirm-password') || document.getElementById('st-reg-confirm-pwd')) as HTMLInputElement;
+    if (pwdInput) pwdInput.type = pwdInput.type === 'password' ? 'text' : 'password';
+  });
   document.getElementById('btn-toggle-st-login-pwd')?.addEventListener('click', () => {
     const pwdInput = document.getElementById('st-login-password') as HTMLInputElement;
     if (pwdInput) pwdInput.type = pwdInput.type === 'password' ? 'text' : 'password';
@@ -3024,7 +3042,8 @@ function setupStudentPortal() {
     const nome = (document.getElementById('st-reg-name') as HTMLInputElement).value.trim();
     const email = (document.getElementById('st-reg-email') as HTMLInputElement).value.trim().toLowerCase();
     const senha = (document.getElementById('st-reg-password') as HTMLInputElement).value;
-    const confirmSenha = (document.getElementById('st-reg-confirm-pwd') as HTMLInputElement).value;
+    const confirmInput = (document.getElementById('st-reg-confirm-password') || document.getElementById('st-reg-confirm-pwd')) as HTMLInputElement;
+    const confirmSenha = confirmInput ? confirmInput.value : senha;
     const telefone = (document.getElementById('st-reg-phone') as HTMLInputElement).value.trim();
     const idade = parseInt((document.getElementById('st-reg-age') as HTMLInputElement).value) || 25;
     const rawPeso = (document.getElementById('st-reg-weight') as HTMLInputElement).value.replace(',', '.');
@@ -3034,7 +3053,8 @@ function setupStudentPortal() {
     if (altura < 3) altura = Math.round(altura * 100);
     const sexo = (document.getElementById('st-reg-gender') as HTMLSelectElement).value || 'M';
     const objetivo = (document.getElementById('st-reg-goal') as HTMLSelectElement).value || 'HIPERTROFIA';
-    const nivel = (document.getElementById('st-reg-experience') as HTMLSelectElement).value || 'INICIANTE';
+    const levelEl = (document.getElementById('st-reg-level') || document.getElementById('st-reg-experience')) as HTMLSelectElement;
+    const nivel = levelEl ? levelEl.value : 'INICIANTE';
     const rotina = (document.getElementById('st-reg-routine') as HTMLTextAreaElement).value.trim();
     const lesoes = (document.getElementById('st-reg-injuries') as HTMLTextAreaElement).value.trim();
     const termoLgpd = (document.getElementById('st-reg-lgpd') as HTMLInputElement).checked;
@@ -3259,9 +3279,9 @@ function setupStudentPortal() {
   const portalParam = searchParams.get('portal');
   const cadastroParam = searchParams.get('cadastro');
 
-  if (portalParam === 'cadastro' || cadastroParam === 'aluno' || cadastroParam === 'true') {
+  if (portalParam === 'cadastro' || portalParam === 'registro' || cadastroParam === 'aluno' || cadastroParam === 'true') {
     showStudentView('register');
-  } else if (portalParam === 'aluno' || portalParam === 'login') {
+  } else if (portalParam === 'aluno' || portalParam === 'login' || portalParam === 'app') {
     const student = authService.getStudentSession();
     if (student && student.id) {
       showStudentView('app');
@@ -3275,12 +3295,12 @@ function renderStudentPortalApp() {
   const student = authService.getStudentSession();
   if (!student || !student.id) return;
 
-  // Header
-  const nameEl = document.getElementById('st-header-name');
-  const emailEl = document.getElementById('st-header-email');
-  const avatarEl = document.getElementById('st-header-avatar');
+  // Header & Avatar
+  const nameEl = document.getElementById('st-app-name') || document.getElementById('st-header-name');
+  const goalEl = document.getElementById('st-app-goal');
+  const avatarEl = document.getElementById('st-app-avatar') || document.getElementById('st-header-avatar');
   if (nameEl) nameEl.textContent = student.nome;
-  if (emailEl) emailEl.textContent = student.email || student.telefone || 'Aluno Ativo';
+  if (goalEl) goalEl.innerHTML = `<i data-lucide="target"></i> ${student.objetivo || 'Consultoria Ativa'}`;
   if (avatarEl) {
     const initials = student.nome.split(' ').filter(Boolean).map((p: string) => p[0]).slice(0, 2).join('').toUpperCase() || 'AL';
     avatarEl.textContent = initials;
