@@ -651,15 +651,6 @@ function setupAuth() {
     }
   });
 
-  // ACESSO RÁPIDO DE DEMONSTRAÇÃO (100% Instantâneo)
-  document.getElementById('btn-demo-login')?.addEventListener('click', async () => {
-    clearAuthAlert();
-    const res = authService.signInDemo();
-    if (res.success) {
-      showToast(res.message || 'Bem-vindo ao Modo Demonstração!', 'success');
-    }
-  });
-
   // LOGOUT (SAIR DA CONTA)
   document.getElementById('btn-sidebar-logout')?.addEventListener('click', async () => {
     if (confirm('Deseja realmente sair da conta do Personal Trainer?')) {

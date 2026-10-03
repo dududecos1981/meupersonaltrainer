@@ -57,7 +57,23 @@ describe('AuthService - Authentication & Session Management', () => {
     expect(res.error).toContain('mínimo 6 caracteres');
   });
 
-  it('should successfully sign in with demo credentials in fallback mode', async () => {
+  it('should successfully sign in with primary owner credentials (dududecos1981@gmail.com)', async () => {
+    const res = await authService.signIn('dududecos1981@gmail.com', 'Edu150920@');
+    expect(res.success).toBe(true);
+    expect(res.data).toBeDefined();
+    expect(res.data?.personal.email).toBe('dududecos1981@gmail.com');
+    expect(res.data?.personal.nome).toContain('Eduardo');
+    expect(authService.isAuthenticated()).toBe(true);
+    expect(authService.getCurrentPersonal()?.email).toBe('dududecos1981@gmail.com');
+  });
+
+  it('should reject sign in with wrong password for registered user', async () => {
+    const res = await authService.signIn('dududecos1981@gmail.com', 'SenhaErrada123');
+    expect(res.success).toBe(false);
+    expect(res.error).toContain('E-mail ou senha incorretos');
+  });
+
+  it('should successfully sign in with standard credentials in fallback mode', async () => {
     const res = await authService.signIn('balbino@personaltrainer.com', 'senha123');
     expect(res.success).toBe(true);
     expect(res.data).toBeDefined();

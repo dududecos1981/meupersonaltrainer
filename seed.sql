@@ -3,10 +3,11 @@
 -- Script de Demonstração / Seed Limpo para Neon PostgreSQL
 -- ==============================================================================
 
--- 1. Inserir Personal Trainer Padrão (Balbino)
+-- 1. Inserir Personal Trainer Principal (Eduardo Cunha Balbino)
 INSERT INTO public.personais (id, nome, email, cref)
 VALUES 
-    ('11111111-1111-1111-1111-111111111111', 'Personal Balbino', 'balbino@personaltrainer.com', '123456-G/SP')
+    ('11111111-1111-1111-1111-111111111111', 'Eduardo Cunha Balbino', 'dududecos1981@gmail.com', '123456-G/SP'),
+    ('22222222-2222-2222-2222-222222222222', 'Personal Balbino', 'balbino@personaltrainer.com', '123456-G/SP')
 ON CONFLICT (email) DO NOTHING;
 
 -- 2. Inserir Biblioteca Básica de Exercícios Profissionais

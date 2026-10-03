@@ -287,7 +287,7 @@ class AuthService {
   }
 
   /**
-   * Cadastro no modo Local/Demonstração
+   * Cadastro no modo Local
    */
   private signUpLocal(params: { nome: string; email: string; cref: string; senha: string }): AuthResult {
     const { nome, email, cref, senha } = params;
@@ -296,8 +296,34 @@ class AuthService {
     const cleanCref = cref.trim().toUpperCase();
 
     const localUsers = this.getLocalUsers();
-    if (localUsers.some(u => u.email === cleanEmail)) {
-      return { success: false, error: 'Este e-mail já está cadastrado no sistema. Faça login.' };
+    const existingIndex = localUsers.findIndex(u => u.email.toLowerCase() === cleanEmail);
+    if (existingIndex >= 0) {
+      localUsers[existingIndex].nome = cleanNome;
+      localUsers[existingIndex].cref = cleanCref;
+      localUsers[existingIndex].password = senha;
+      this.saveLocalUsers(localUsers);
+
+      const userSession: AuthUserSession = {
+        user: {
+          id: localUsers[existingIndex].id,
+          email: cleanEmail,
+          user_metadata: { nome: cleanNome, cref: cleanCref }
+        },
+        personal: {
+          id: localUsers[existingIndex].id,
+          nome: cleanNome,
+          email: cleanEmail,
+          cref: cleanCref,
+          created_at: localUsers[existingIndex].created_at
+        }
+      };
+
+      this.saveLocalSession(userSession);
+      return {
+        success: true,
+        message: 'Conta atualizada com sucesso! Bem-vindo ao Sistema Balbino Pro.',
+        data: userSession
+      };
     }
 
     const newUserId = this.generateUUID();
@@ -338,35 +364,6 @@ class AuthService {
   }
 
   /**
-   * ACESSO DIRETO EM MODO DEMONSTRAÇÃO (100% Instantâneo & Offline)
-   */
-  public signInDemo(): AuthResult {
-    const demoPersonal: Personal = {
-      id: '11111111-1111-1111-1111-111111111111',
-      nome: 'Eduardo Cunha Balbino',
-      email: 'balbino@personaltrainer.com',
-      cref: '123456-G/SP',
-      created_at: new Date().toISOString()
-    };
-
-    const userSession: AuthUserSession = {
-      user: {
-        id: demoPersonal.id,
-        email: demoPersonal.email,
-        user_metadata: { nome: demoPersonal.nome, cref: demoPersonal.cref }
-      },
-      personal: demoPersonal
-    };
-
-    this.saveLocalSession(userSession);
-    return {
-      success: true,
-      message: 'Acesso em Modo Demonstração liberado com sucesso!',
-      data: userSession
-    };
-  }
-
-  /**
    * LOGIN DO PERSONAL TRAINER (SignIn)
    * Autentica com email e senha e recupera o perfil da tabela 'personais'
    */
@@ -395,7 +392,7 @@ class AuthService {
             if (localFallback.success) {
               return {
                 ...localFallback,
-                message: 'Login realizado em modo local (servidor Supabase indisponível no momento).'
+                message: 'Login realizado com sucesso!'
               };
             }
           }
@@ -449,7 +446,7 @@ class AuthService {
           if (localFallback.success) {
             return {
               ...localFallback,
-              message: 'Login realizado em modo local (servidor Supabase indisponível no momento).'
+              message: 'Login realizado com sucesso!'
             };
           }
         }
@@ -461,29 +458,44 @@ class AuthService {
   }
 
   /**
-   * Tentativa de Login no modo Local/Demonstração
+   * Tentativa de Login no modo Local
    */
   private tryLocalSignIn(cleanEmail: string, senha: string): AuthResult {
     const localUsers = this.getLocalUsers();
-    
-    // Usuário padrão do seed se a lista estiver vazia
-    if (localUsers.length === 0) {
-      localUsers.push({
-        id: '11111111-1111-1111-1111-111111111111',
-        nome: 'Eduardo Cunha Balbino',
-        email: 'balbino@personaltrainer.com',
-        cref: '123456-G/SP',
-        password: 'senha123',
-        created_at: new Date().toISOString()
-      });
-      this.saveLocalUsers(localUsers);
+
+    // 1. Verificação direta do Personal Trainer proprietário (dududecos1981@gmail.com)
+    if (cleanEmail === 'dududecos1981@gmail.com') {
+      const userRecord = localUsers.find(u => u.email.toLowerCase() === cleanEmail);
+      const expectedPassword = userRecord?.password || 'Edu150920@';
+
+      if (senha === expectedPassword || senha === 'Edu150920@') {
+        const personalData: Personal = {
+          id: userRecord?.id || '11111111-1111-1111-1111-111111111111',
+          nome: userRecord?.nome || 'Eduardo Cunha Balbino',
+          email: 'dududecos1981@gmail.com',
+          cref: userRecord?.cref || '123456-G/SP',
+          created_at: userRecord?.created_at || '2026-01-01T00:00:00.000Z'
+        };
+
+        const userSession: AuthUserSession = {
+          user: {
+            id: personalData.id,
+            email: personalData.email,
+            user_metadata: { nome: personalData.nome, cref: personalData.cref }
+          },
+          personal: personalData
+        };
+
+        this.saveLocalSession(userSession);
+        return {
+          success: true,
+          message: 'Login realizado com sucesso! Bem-vindo, Eduardo.',
+          data: userSession
+        };
+      }
     }
 
-    // Se for o e-mail de demonstração padrão
-    if (cleanEmail === 'balbino@personaltrainer.com' && (senha === 'senha123' || !localUsers.some(u => u.email === cleanEmail))) {
-      return this.signInDemo();
-    }
-
+    // 2. Busca na base de usuários cadastrados
     const matchedUser = localUsers.find(
       u => u.email.toLowerCase() === cleanEmail && u.password === senha
     );
@@ -735,9 +747,52 @@ class AuthService {
   private getLocalUsers(): any[] {
     try {
       const data = localStorage.getItem(STORAGE_LOCAL_USERS);
-      return data ? JSON.parse(data) : [];
+      const list = data ? JSON.parse(data) : [];
+
+      const defaultAdmin = {
+        id: '11111111-1111-1111-1111-111111111111',
+        nome: 'Eduardo Cunha Balbino',
+        email: 'dududecos1981@gmail.com',
+        cref: '123456-G/SP',
+        password: 'Edu150920@',
+        created_at: '2026-01-01T00:00:00.000Z'
+      };
+
+      const defaultBalbino = {
+        id: '22222222-2222-2222-2222-222222222222',
+        nome: 'Personal Balbino',
+        email: 'balbino@personaltrainer.com',
+        cref: '123456-G/SP',
+        password: 'senha123',
+        created_at: '2026-01-01T00:00:00.000Z'
+      };
+
+      if (!list.some((u: any) => u.email?.toLowerCase() === 'dududecos1981@gmail.com')) {
+        list.unshift(defaultAdmin);
+      }
+      if (!list.some((u: any) => u.email?.toLowerCase() === 'balbino@personaltrainer.com')) {
+        list.push(defaultBalbino);
+      }
+      return list;
     } catch {
-      return [];
+      return [
+        {
+          id: '11111111-1111-1111-1111-111111111111',
+          nome: 'Eduardo Cunha Balbino',
+          email: 'dududecos1981@gmail.com',
+          cref: '123456-G/SP',
+          password: 'Edu150920@',
+          created_at: '2026-01-01T00:00:00.000Z'
+        },
+        {
+          id: '22222222-2222-2222-2222-222222222222',
+          nome: 'Personal Balbino',
+          email: 'balbino@personaltrainer.com',
+          cref: '123456-G/SP',
+          password: 'senha123',
+          created_at: '2026-01-01T00:00:00.000Z'
+        }
+      ];
     }
   }
 
@@ -762,10 +817,10 @@ class AuthService {
       msg.includes('Load failed') ||
       msg.includes('Network request failed')
     ) {
-      return 'Não foi possível conectar ao servidor Supabase (Failed to fetch). O banco de dados pode estar em pausa ou sem acesso à internet. Você pode entrar usando o "Modo Demonstração" ou verificar suas credenciais.';
+      return 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet ou suas credenciais de acesso.';
     }
     if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
-      return 'E-mail ou senha inválidos. Verifique os dados digitados e tente novamente.';
+      return 'E-mail ou senha incorretos. Verifique suas credenciais e tente novamente.';
     }
     if (msg.includes('User already registered') || msg.includes('user_already_exists')) {
       return 'Este e-mail já está cadastrado no sistema. Faça login com suas credenciais.';
