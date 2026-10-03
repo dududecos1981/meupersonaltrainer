@@ -21,8 +21,8 @@ export interface AuthUserSession {
     id: string;
     email: string;
     user_metadata?: {
-      nome?: string;
-      cref?: string;
+      nome?: string | null;
+      cref?: string | null;
     };
   };
   personal: Personal;
@@ -229,6 +229,10 @@ class AuthService {
         });
 
         if (error) {
+          const isNetworkError = error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('fetch');
+          if (isNetworkError) {
+            return this.signUpLocal({ nome: cleanNome, email: cleanEmail, cref: cleanCref, senha });
+          }
           return { success: false, error: this.formatErrorMessage(error.message) };
         }
 
@@ -241,7 +245,6 @@ class AuthService {
             created_at: new Date().toISOString()
           };
 
-          // Tenta persistir diretamente na tabela 'personais' (caso o trigger do banco não tenha sido criado)
           try {
             await this.client.from('personais').upsert({
               id: data.user.id,
@@ -271,11 +274,27 @@ class AuthService {
           };
         }
       } catch (err: any) {
-        return { success: false, error: err.message || 'Falha ao conectar com o Supabase Auth.' };
+        const errMsg = err.message || '';
+        const isNetworkError = errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || errMsg.includes('fetch');
+        if (isNetworkError) {
+          return this.signUpLocal({ nome: cleanNome, email: cleanEmail, cref: cleanCref, senha });
+        }
+        return { success: false, error: this.formatErrorMessage(errMsg || 'Falha ao conectar com o Supabase Auth.') };
       }
     }
 
-    // 2. Modo Local / Demonstração Inteligente (Garante funcionamento imediato e testes)
+    return this.signUpLocal({ nome: cleanNome, email: cleanEmail, cref: cleanCref, senha });
+  }
+
+  /**
+   * Cadastro no modo Local/Demonstração
+   */
+  private signUpLocal(params: { nome: string; email: string; cref: string; senha: string }): AuthResult {
+    const { nome, email, cref, senha } = params;
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanNome = nome.trim();
+    const cleanCref = cref.trim().toUpperCase();
+
     const localUsers = this.getLocalUsers();
     if (localUsers.some(u => u.email === cleanEmail)) {
       return { success: false, error: 'Este e-mail já está cadastrado no sistema. Faça login.' };
@@ -319,6 +338,35 @@ class AuthService {
   }
 
   /**
+   * ACESSO DIRETO EM MODO DEMONSTRAÇÃO (100% Instantâneo & Offline)
+   */
+  public signInDemo(): AuthResult {
+    const demoPersonal: Personal = {
+      id: '11111111-1111-1111-1111-111111111111',
+      nome: 'Eduardo Cunha Balbino',
+      email: 'balbino@personaltrainer.com',
+      cref: '123456-G/SP',
+      created_at: new Date().toISOString()
+    };
+
+    const userSession: AuthUserSession = {
+      user: {
+        id: demoPersonal.id,
+        email: demoPersonal.email,
+        user_metadata: { nome: demoPersonal.nome, cref: demoPersonal.cref }
+      },
+      personal: demoPersonal
+    };
+
+    this.saveLocalSession(userSession);
+    return {
+      success: true,
+      message: 'Acesso em Modo Demonstração liberado com sucesso!',
+      data: userSession
+    };
+  }
+
+  /**
    * LOGIN DO PERSONAL TRAINER (SignIn)
    * Autentica com email e senha e recupera o perfil da tabela 'personais'
    */
@@ -341,11 +389,20 @@ class AuthService {
         });
 
         if (error) {
+          const isNetworkError = error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('fetch');
+          if (isNetworkError) {
+            const localFallback = this.tryLocalSignIn(cleanEmail, senha);
+            if (localFallback.success) {
+              return {
+                ...localFallback,
+                message: 'Login realizado em modo local (servidor Supabase indisponível no momento).'
+              };
+            }
+          }
           return { success: false, error: this.formatErrorMessage(error.message) };
         }
 
         if (data.user) {
-          // Busca dados da tabela 'personais'
           let personalData: Personal = {
             id: data.user.id,
             nome: data.user.user_metadata?.nome || cleanEmail.split('@')[0],
@@ -385,11 +442,28 @@ class AuthService {
           };
         }
       } catch (err: any) {
-        return { success: false, error: err.message || 'Erro ao conectar ao serviço de autenticação.' };
+        const errMsg = err.message || '';
+        const isNetworkError = errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || errMsg.includes('fetch');
+        if (isNetworkError) {
+          const localFallback = this.tryLocalSignIn(cleanEmail, senha);
+          if (localFallback.success) {
+            return {
+              ...localFallback,
+              message: 'Login realizado em modo local (servidor Supabase indisponível no momento).'
+            };
+          }
+        }
+        return { success: false, error: this.formatErrorMessage(errMsg || 'Erro ao conectar ao serviço de autenticação.') };
       }
     }
 
-    // 2. Modo Local / Simulação de Demonstração
+    return this.tryLocalSignIn(cleanEmail, senha);
+  }
+
+  /**
+   * Tentativa de Login no modo Local/Demonstração
+   */
+  private tryLocalSignIn(cleanEmail: string, senha: string): AuthResult {
     const localUsers = this.getLocalUsers();
     
     // Usuário padrão do seed se a lista estiver vazia
@@ -403,6 +477,11 @@ class AuthService {
         created_at: new Date().toISOString()
       });
       this.saveLocalUsers(localUsers);
+    }
+
+    // Se for o e-mail de demonstração padrão
+    if (cleanEmail === 'balbino@personaltrainer.com' && (senha === 'senha123' || !localUsers.some(u => u.email === cleanEmail))) {
+      return this.signInDemo();
     }
 
     const matchedUser = localUsers.find(
@@ -675,17 +754,27 @@ class AuthService {
   }
 
   private formatErrorMessage(msg: string): string {
-    if (msg.includes('Invalid login credentials')) {
-      return 'E-mail ou senha inválidos. Verifique os dados digitados.';
+    if (!msg) return 'Erro desconhecido na autenticação.';
+    if (
+      msg.includes('Failed to fetch') ||
+      msg.includes('NetworkError') ||
+      msg.includes('fetch') ||
+      msg.includes('Load failed') ||
+      msg.includes('Network request failed')
+    ) {
+      return 'Não foi possível conectar ao servidor Supabase (Failed to fetch). O banco de dados pode estar em pausa ou sem acesso à internet. Você pode entrar usando o "Modo Demonstração" ou verificar suas credenciais.';
     }
-    if (msg.includes('User already registered')) {
+    if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
+      return 'E-mail ou senha inválidos. Verifique os dados digitados e tente novamente.';
+    }
+    if (msg.includes('User already registered') || msg.includes('user_already_exists')) {
       return 'Este e-mail já está cadastrado no sistema. Faça login com suas credenciais.';
     }
     if (msg.includes('Password should be at least')) {
       return 'A senha deve ter no mínimo 6 caracteres.';
     }
-    if (msg.includes('rate limit')) {
-      return 'Muitas tentativas em sequência. Aguarde alguns instantes.';
+    if (msg.includes('rate limit') || msg.includes('over_email_send_rate_limit')) {
+      return 'Muitas tentativas em sequência. Aguarde alguns instantes e tente novamente.';
     }
     return msg;
   }

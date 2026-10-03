@@ -568,11 +568,13 @@ function setupAuth() {
     }
   });
 
-  // ACESSO RÁPIDO DE DEMONSTRAÇÃO
+  // ACESSO RÁPIDO DE DEMONSTRAÇÃO (100% Instantâneo)
   document.getElementById('btn-demo-login')?.addEventListener('click', async () => {
-    (document.getElementById('login-email') as HTMLInputElement).value = 'balbino@personaltrainer.com';
-    (document.getElementById('login-password') as HTMLInputElement).value = 'senha123';
-    document.getElementById('btn-login-submit')?.click();
+    clearAuthAlert();
+    const res = authService.signInDemo();
+    if (res.success) {
+      showToast(res.message || 'Bem-vindo ao Modo Demonstração!', 'success');
+    }
   });
 
   // LOGOUT (SAIR DA CONTA)
@@ -709,16 +711,36 @@ function setupNavigation() {
         document.title = `${tabTitles[tabId].title}${personalName} | Balbino Pro`;
       }
 
+      // Auto-fechar sidebar no mobile após selecionar aba
+      if (window.innerWidth <= 768) {
+        sidebar?.classList.remove('open');
+        sidebarBackdrop?.classList.remove('active');
+      }
+
       if (typeof lucide !== 'undefined') lucide.createIcons();
     });
   });
 
-  // Mobile Menu Toggle
+  // Mobile Menu Toggle & Backdrop
   const mobileToggle = document.getElementById('mobile-toggle');
   const sidebar = document.getElementById('sidebar');
-  mobileToggle?.addEventListener('click', () => {
-    sidebar?.classList.toggle('open');
-  });
+  const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+  function toggleSidebar(open?: boolean) {
+    if (open === undefined) {
+      const isOpen = sidebar?.classList.toggle('open');
+      sidebarBackdrop?.classList.toggle('active', !!isOpen);
+    } else if (open) {
+      sidebar?.classList.add('open');
+      sidebarBackdrop?.classList.add('active');
+    } else {
+      sidebar?.classList.remove('open');
+      sidebarBackdrop?.classList.remove('active');
+    }
+  }
+
+  mobileToggle?.addEventListener('click', () => toggleSidebar());
+  sidebarBackdrop?.addEventListener('click', () => toggleSidebar(false));
 
   // Quick generate button
   document.getElementById('btn-quick-generate')?.addEventListener('click', () => {

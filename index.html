@@ -60,7 +60,7 @@
             <label class="form-label" for="login-email">E-mail</label>
             <div class="input-icon-wrapper">
               <i data-lucide="mail" class="input-icon"></i>
-              <input type="email" class="form-control with-icon" id="login-email" required placeholder="seu@email.com" autocomplete="email">
+              <input type="email" class="form-control with-icon" id="login-email" required placeholder="seu@email.com" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false">
             </div>
           </div>
 
@@ -71,7 +71,7 @@
             </div>
             <div class="input-icon-wrapper">
               <i data-lucide="lock" class="input-icon"></i>
-              <input type="password" class="form-control with-icon with-action" id="login-password" required placeholder="Digite sua senha" autocomplete="current-password">
+              <input type="password" class="form-control with-icon with-action" id="login-password" required placeholder="Digite sua senha" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false">
               <button type="button" class="btn-toggle-password" id="btn-toggle-login-pwd" title="Mostrar/Ocultar senha">
                 <i data-lucide="eye"></i>
               </button>
@@ -114,7 +114,7 @@
             </div>
             <div class="input-icon-wrapper">
               <i data-lucide="award" class="input-icon"></i>
-              <input type="text" class="form-control with-icon" id="register-cref" required placeholder="Ex: 123456-G/SP" maxlength="20">
+              <input type="text" class="form-control with-icon" id="register-cref" required placeholder="Ex: 123456-G/SP" maxlength="20" autocapitalize="characters">
             </div>
           </div>
 
@@ -122,7 +122,7 @@
             <label class="form-label" for="register-email">E-mail *</label>
             <div class="input-icon-wrapper">
               <i data-lucide="mail" class="input-icon"></i>
-              <input type="email" class="form-control with-icon" id="register-email" required placeholder="seu@email.com" autocomplete="email">
+              <input type="email" class="form-control with-icon" id="register-email" required placeholder="seu@email.com" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false">
             </div>
           </div>
 
@@ -133,7 +133,7 @@
             </div>
             <div class="input-icon-wrapper">
               <i data-lucide="lock" class="input-icon"></i>
-              <input type="password" class="form-control with-icon with-action" id="register-password" required minlength="6" placeholder="Mínimo 6 dígitos" autocomplete="new-password">
+              <input type="password" class="form-control with-icon with-action" id="register-password" required minlength="6" placeholder="Mínimo 6 dígitos" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false">
               <button type="button" class="btn-toggle-password" id="btn-toggle-reg-pwd" title="Mostrar/Ocultar senha">
                 <i data-lucide="eye"></i>
               </button>
@@ -278,6 +278,9 @@
   </div>
 
   <div class="app-layout" id="app-main-layout">
+    <!-- Mobile Sidebar Backdrop -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
