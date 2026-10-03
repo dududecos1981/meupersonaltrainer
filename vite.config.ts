@@ -22,7 +22,10 @@ export default defineConfig({
   server: {
     host: true,
     port: 5174,
-    strictPort: false
+    strictPort: false,
+    watch: {
+      ignored: ['**/*.pdf', '**/*.xlsx', '**/*.docx', '**/*.png', '**/*.jpg', '**/*.jpeg', '**/dist/**']
+    }
   },
   preview: {
     port: 4173
