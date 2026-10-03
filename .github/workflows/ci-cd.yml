@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -40,6 +40,12 @@ jobs:
 
       - name: Build Otimizada para Produção
         run: npm run build
+
+      - name: Deploy para o branch gh-pages (Deploy Universal)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
 
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
