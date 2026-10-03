@@ -1,14 +1,22 @@
-name: CI/CD Pipeline — Sistema Personal Trainer
+name: CI/CD Pipeline & Live Deployment — Sistema Personal Trainer
 
 on:
   push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
 
 jobs:
   validate-and-build:
-    name: TypeCheck, Security & Production Build
+    name: Test, TypeCheck & Build
     runs-on: ubuntu-latest
 
     steps:
@@ -22,22 +30,33 @@ jobs:
           cache: 'npm'
 
       - name: Instalar Dependências
-        run: npm ci || npm install
+        run: npm install
 
       - name: Validação Estrita de Tipos (TypeScript)
         run: npm run type-check
 
+      - name: Execução de Testes Automatizados
+        run: npm test
+
       - name: Build Otimizada para Produção
         run: npm run build
-        env:
-          NODE_ENV: production
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
 
-      - name: Upload de Artefatos de Build
-        uses: actions/upload-artifact@v4
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload de Artefatos para Deploy
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: dist-production
-          path: dist/
-          retention-days: 7
+          path: './dist'
+
+  deploy:
+    name: Publicar Acesso Remoto (Live Web App)
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: validate-and-build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
